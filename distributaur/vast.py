@@ -17,23 +17,24 @@ redis_url = get_redis_values()
 pool = ConnectionPool.from_url(redis_url)
 redis_client = Redis(connection_pool=pool)
 
+
 def dump_redis_values():
-    keys = redis_client.keys('*')
+    keys = redis_client.keys("*")
     for key in keys:
-        key_type = redis_client.type(key).decode('utf-8')
-        if key_type == 'string':
-            value = redis_client.get(key).decode('utf-8')
+        key_type = redis_client.type(key).decode("utf-8")
+        if key_type == "string":
+            value = redis_client.get(key).decode("utf-8")
             print(f"Key: {key.decode('utf-8')}, Value: {value}")
-        elif key_type == 'list':
+        elif key_type == "list":
             value = redis_client.lrange(key, 0, -1)
             print(f"Key: {key.decode('utf-8')}, Value: {value}")
-        elif key_type == 'set':
+        elif key_type == "set":
             value = redis_client.smembers(key)
             print(f"Key: {key.decode('utf-8')}, Value: {value}")
-        elif key_type == 'hash':
+        elif key_type == "hash":
             value = redis_client.hgetall(key)
             print(f"Key: {key.decode('utf-8')}, Value: {value}")
-        elif key_type == 'zset':
+        elif key_type == "zset":
             value = redis_client.zrange(key, 0, -1, withscores=True)
             print(f"Key: {key.decode('utf-8')}, Value: {value}")
         else:
@@ -52,6 +53,7 @@ def http_get(url, headers):
             print(f"Response: {response.text}")
         raise
 
+
 def apiurl(subpath: str, query_args: Dict = None, api_key: str = None) -> str:
     if query_args is None:
         query_args = {}
@@ -63,15 +65,18 @@ def apiurl(subpath: str, query_args: Dict = None, api_key: str = None) -> str:
     )
     return server_url_default + "/api/v0" + subpath + "?" + query_json
 
+
 def http_put(req_url, headers, json):
     response = requests.put(req_url, headers=headers, json=json)
     response.raise_for_status()
     return response
 
+
 def http_del(req_url, headers, json={}):
     response = requests.delete(req_url, headers=headers, json=json)
     response.raise_for_status()
     return response
+
 
 def http_post(req_url, headers, json={}):
     response = requests.post(req_url, headers=headers, json=json)
@@ -81,6 +86,7 @@ def http_post(req_url, headers, json={}):
         print(f"Error response content: {response.content}")
         raise e
     return response
+
 
 def parse_query(
     query_str: str, res: Dict = None, fields={}, field_alias={}, field_multiplier={}
@@ -93,10 +99,25 @@ def parse_query(
     pattern = r"([a-zA-Z0-9_]+)( *[=><!]+| +(?:[lg]te?|nin|neq|eq|not ?eq|not ?in|in) )?( *)(\[[^\]]+\]|\"[^\"]+\"|[^ ]+)?( *)"
     opts = re.findall(pattern, query_str)
     op_names = {
-        ">=": "gte", ">": "gt", "gt": "gt", "gte": "gte", "<=": "lte", "<": "lt",
-        "lt": "lt", "lte": "lte", "!=": "neq", "==": "eq", "=": "eq", "eq": "eq",
-        "neq": "neq", "noteq": "neq", "not eq": "neq", "notin": "notin",
-        "not in": "notin", "nin": "notin", "in": "in",
+        ">=": "gte",
+        ">": "gt",
+        "gt": "gt",
+        "gte": "gte",
+        "<=": "lte",
+        "<": "lt",
+        "lt": "lt",
+        "lte": "lte",
+        "!=": "neq",
+        "==": "eq",
+        "=": "eq",
+        "eq": "eq",
+        "neq": "neq",
+        "noteq": "neq",
+        "not eq": "neq",
+        "notin": "notin",
+        "not in": "notin",
+        "nin": "notin",
+        "in": "in",
     }
     joined = "".join("".join(x) for x in opts)
     if joined != query_str:
@@ -170,25 +191,55 @@ def parse_query(
             res[field].update(v)
     return res
 
+
 offers_fields = {
-    "bw_nvlink", "compute_cap", "cpu_cores", "cpu_ram", "cuda_max_good",
-    "direct_port_count", "disk_bw", "disk_space", "dlperf", "dph_total",
-    "driver_version", "duration", "external", "flops_per_dphtotal", "gpu_mem_bw",
-    "gpu_name", "gpu_ram", "has_avx", "id", "inet_down", "inet_down_cost",
-    "inet_up", "inet_up_cost", "machine_id", "min_bid", "mobo_name", "num_gpus",
-    "pci_gen", "pcie_bw", "reliability", "rentable", "rented", "storage_cost",
-    "total_flops", "verified"
+    "bw_nvlink",
+    "compute_cap",
+    "cpu_cores",
+    "cpu_ram",
+    "cuda_max_good",
+    "direct_port_count",
+    "disk_bw",
+    "disk_space",
+    "dlperf",
+    "dph_total",
+    "driver_version",
+    "duration",
+    "external",
+    "flops_per_dphtotal",
+    "gpu_mem_bw",
+    "gpu_name",
+    "gpu_ram",
+    "has_avx",
+    "id",
+    "inet_down",
+    "inet_down_cost",
+    "inet_up",
+    "inet_up_cost",
+    "machine_id",
+    "min_bid",
+    "mobo_name",
+    "num_gpus",
+    "pci_gen",
+    "pcie_bw",
+    "reliability",
+    "rentable",
+    "rented",
+    "storage_cost",
+    "total_flops",
+    "verified",
 }
 
 offers_alias = {
-    "cuda_vers": "cuda_max_good", "reliability": "reliability2",
-    "dlperf_usd": "dlperf_per_dphtotal", "dph": "dph_total",
+    "cuda_vers": "cuda_max_good",
+    "reliability": "reliability2",
+    "dlperf_usd": "dlperf_per_dphtotal",
+    "dph": "dph_total",
     "flops_usd": "flops_per_dphtotal",
 }
 
-offers_mult = {
-    "cpu_ram": 1000, "duration": 24 * 60 * 60
-}
+offers_mult = {"cpu_ram": 1000, "duration": 24 * 60 * 60}
+
 
 def get_runtype(args):
     runtype = "ssh"
@@ -209,6 +260,7 @@ def get_runtype(args):
     if args.ssh:
         runtype = "ssh_direc ssh_proxy" if args.direct else "ssh_proxy"
     return runtype
+
 
 def parse_env(envs):
     result = {}
@@ -240,17 +292,22 @@ def parse_env(envs):
             prev = None
     return result
 
+
 import urllib.parse
+
 
 def search_offers(max_price, api_key):
     base_url = "https://console.vast.ai/api/v0/bundles/"
     headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {api_key}'
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
     }
-    url = base_url+"?q={\"gpu_ram\":\">=4\",\"rentable\":{\"eq\":true},\"dph_total\":{\"lte\":0.1480339514817041},\"sort_option\":{\"0\":[\"dph_total\",\"asc\"],\"1\":[\"total_flops\",\"asc\"]}}"
-    
+    url = (
+        base_url
+        + '?q={"gpu_ram":">=4","rentable":{"eq":true},"dph_total":{"lte":0.1480339514817041},"sort_option":{"0":["dph_total","asc"],"1":["total_flops","asc"]}}'
+    )
+
     print("url", url)
 
     try:
@@ -264,26 +321,29 @@ def search_offers(max_price, api_key):
         print(f"Response: {response.text if response else 'No response'}")
         raise
 
+
 def create_instance(offer_id, image, env):
     # check that the env is a dictionary and has the vars REDIS_HOST, REDIS_PORT, REDIS_USER, REDIS_PASSWORD, HF_TOKEN, HF_REPO_ID, HF_PATH, VAST_API_KEY
     if env is None:
         raise ValueError("env is required")
-    
+
     if not isinstance(env, dict):
         raise ValueError("env must be a dictionary")
-    
-    if not all(k in env for k in ["REDIS_HOST", "REDIS_PORT", "REDIS_USER", "REDIS_PASSWORD"]):
+
+    if not all(
+        k in env for k in ["REDIS_HOST", "REDIS_PORT", "REDIS_USER", "REDIS_PASSWORD"]
+    ):
         # warn about missing redis env vars
         print("Warning: Missing Redis environment variables")
-        
+
     if not all(k in env for k in ["HF_TOKEN", "HF_REPO_ID", "HF_PATH"]):
         # warn about missing huggingface env vars
         print("Warning: Missing Hugging Face environment variables")
-        
+
     if not "VAST_API_KEY" in env:
         # warn about missing vast api key
         print("Warning: Missing Vast API key")
-    
+
     json_blob = {
         "client_id": "me",
         "image": image,
@@ -298,26 +358,30 @@ def create_instance(offer_id, image, env):
         "jupyter_dir": None,
         "create_from": "",
         "template_hash_id": "250671155ccbc28d0609af524b75a80e",
-        "template_id": 108305
+        "template_id": 108305,
     }
     url = apiurl(f"/asks/{offer_id}/")
-    response = http_put(url, headers={
-        "Authorization": f"Bearer {env['VAST_API_KEY']}",
-        }, json=json_blob)
+    response = http_put(
+        url,
+        headers={
+            "Authorization": f"Bearer {env['VAST_API_KEY']}",
+        },
+        json=json_blob,
+    )
     return response.json()
+
 
 def destroy_instance(instance_id):
     env = get_env_vars()
-    headers = {
-        'Authorization': f'Bearer {env["VAST_API_KEY"]}'
-    }
+    headers = {"Authorization": f'Bearer {env["VAST_API_KEY"]}'}
     url = apiurl(f"/instances/{instance_id}/")
     print(f"Terminating instance: {instance_id}")
     response = http_del(url, headers=headers, json={})
     return response.json()
 
+
 def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars()):
-    env['VAST_API_KEY'] = api_key or env.get("VAST_API_KEY")
+    env["VAST_API_KEY"] = api_key or env.get("VAST_API_KEY")
     offers = search_offers(max_price, api_key)
     rented_nodes = []
     for offer in offers:
@@ -325,10 +389,9 @@ def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars()):
             break
         try:
             instance = create_instance(offer["id"], image, env)
-            rented_nodes.append({
-                "offer_id": offer["id"],
-                "instance_id": instance["new_contract"]
-            })
+            rented_nodes.append(
+                {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
+            )
             print(f"Rented node {offer['id']} on contract: {instance['new_contract']}")
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 400:
@@ -340,6 +403,7 @@ def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars()):
                 raise
     return rented_nodes
 
+
 def terminate_nodes(nodes):
     for node in nodes:
         try:
@@ -347,16 +411,11 @@ def terminate_nodes(nodes):
         except Exception as e:
             print(f"Error terminating node: {node['instance_id']}, {str(e)}")
 
+
 def check_job_status(job_id):
     task_keys = redis_client.keys(f"celery-task-meta-*")
 
-    status_counts = {
-        "PENDING": 0,
-        "STARTED": 0,
-        "RETRY": 0,
-        "FAILURE": 0,
-        "SUCCESS": 0
-    }
+    status_counts = {"PENDING": 0, "STARTED": 0, "RETRY": 0, "FAILURE": 0, "SUCCESS": 0}
 
     for key in task_keys:
         value = redis_client.get(key)
@@ -385,14 +444,12 @@ def monitor_job_status(job_id):
         time.sleep(30)  # Polling interval, adjust as needed
 
 
-
 def attach_to_existing_job(job_id):
     status_counts = check_job_status(job_id)
     if status_counts["STARTED"] > 0 or status_counts["PENDING"] > 0:
         print(f"Attaching to existing job {job_id}...")
         return True
     return False
-
 
 
 def handle_sigint(nodes):

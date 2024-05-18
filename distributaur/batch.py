@@ -8,8 +8,16 @@ from celery import chord, uuid
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
 
-from distributaur.vast import rent_nodes, terminate_nodes, monitor_job_status, handle_sigint, attach_to_existing_job, dump_redis_values
+from distributaur.vast import (
+    rent_nodes,
+    terminate_nodes,
+    monitor_job_status,
+    handle_sigint,
+    attach_to_existing_job,
+    dump_redis_values,
+)
 from distributaur.worker import render_object, notify_completion
+
 
 def render_objects(
     job_id,
@@ -48,7 +56,8 @@ def render_objects(
             hdri_path,
             start_frame,
             end_frame,
-        ) for i, combination in enumerate(combinations[start_index:end_index])
+        )
+        for i, combination in enumerate(combinations[start_index:end_index])
     ]
     callback = notify_completion.s(job_id)  # Pass job_id to completion callback
     job = chord(tasks)(callback)
@@ -182,6 +191,7 @@ def main():
             image=args.image,
             api_key=args.api_key,
         )
+
 
 if __name__ == "__main__":
     main()

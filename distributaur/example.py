@@ -4,6 +4,7 @@ import subprocess
 from distributaur.task_runner import run_task
 from distributaur.utils import get_blender_path, upload_outputs
 
+
 @run_task
 def render_object(
     combination_index: int,
@@ -16,7 +17,7 @@ def render_object(
     end_frame: int = 65,
 ) -> None:
     combination = json.dumps(combination)
-    combination = "\"" + combination.replace('"', '\\"') + "\""
+    combination = '"' + combination.replace('"', '\\"') + '"'
 
     print("output_dir is", output_dir)
 

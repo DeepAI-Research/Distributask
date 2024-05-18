@@ -17,6 +17,7 @@ redis_client = Redis(connection_pool=pool)
 
 app = Celery("tasks", broker=redis_url, backend=redis_url)
 
+
 def run_task(task_func):
     @app.task(name=task_func.__name__, acks_late=True, reject_on_worker_lost=True)
     def wrapper(*args, **kwargs):
@@ -47,7 +48,9 @@ def run_task(task_func):
                 elapsed_task_time = time.time() - task_start_time
                 if elapsed_task_time > task_timeout:
                     update_task_status(task_id, "TIMEOUT")
-                    print(f"Task {task_id} timed out after {elapsed_task_time} seconds of execution")
+                    print(
+                        f"Task {task_id} timed out after {elapsed_task_time} seconds of execution"
+                    )
                     return
 
                 update_task_status(task_id, "COMPLETE")
@@ -66,12 +69,14 @@ def run_task(task_func):
 
     return wrapper
 
+
 def update_task_status(job_id, task_id, status):
     key = f"celery-task-meta-{task_id}"
     value = json.dumps({"status": status})
     redis_client.set(key, value)
     print(f"Updated status for task {task_id} in job {job_id} to {status}")
 
+
 if __name__ == "__main__":
     print("Starting Celery worker...")
-    app.start(argv=['celery', 'worker', '--loglevel=info'])
+    app.start(argv=["celery", "worker", "--loglevel=info"])
