@@ -14,3 +14,4 @@ huggingface_hub
 mkdocs
 mkdocs-material
 mkdocstrings
+pytest
