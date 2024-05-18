@@ -4,16 +4,41 @@ import requests
 import json
 from typing import Dict
 import time
-import hashlib
 import re
-from redis import Redis
-from simian.utils import get_env_vars, get_redis_values
-import signal
+from redis import ConnectionPool, Redis
+
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
+from distributaur.utils import get_env_vars, get_redis_values
 
 server_url_default = "https://console.vast.ai"
 headers = {}
 
-redis_client = Redis.from_url(get_redis_values())
+redis_url = get_redis_values()
+pool = ConnectionPool.from_url(redis_url)
+redis_client = Redis(connection_pool=pool)
+
+def dump_redis_values():
+    keys = redis_client.keys('*')
+    for key in keys:
+        key_type = redis_client.type(key).decode('utf-8')
+        if key_type == 'string':
+            value = redis_client.get(key).decode('utf-8')
+            print(f"Key: {key.decode('utf-8')}, Value: {value}")
+        elif key_type == 'list':
+            value = redis_client.lrange(key, 0, -1)
+            print(f"Key: {key.decode('utf-8')}, Value: {value}")
+        elif key_type == 'set':
+            value = redis_client.smembers(key)
+            print(f"Key: {key.decode('utf-8')}, Value: {value}")
+        elif key_type == 'hash':
+            value = redis_client.hgetall(key)
+            print(f"Key: {key.decode('utf-8')}, Value: {value}")
+        elif key_type == 'zset':
+            value = redis_client.zrange(key, 0, -1, withscores=True)
+            print(f"Key: {key.decode('utf-8')}, Value: {value}")
+        else:
+            print(f"Key: {key.decode('utf-8')} has unsupported type: {key_type}")
+
 
 def http_get(url, headers):
     try:
@@ -258,12 +283,6 @@ def create_instance(offer_id, image, env):
     if not "VAST_API_KEY" in env:
         # warn about missing vast api key
         print("Warning: Missing Vast API key")
-        
-    print("Creating instance...")
-    print("VAST_API_KEY", env["VAST_API_KEY"])
-    
-    # print headers
-    print("HEADERS", headers)
     
     json_blob = {
         "client_id": "me",
@@ -282,8 +301,6 @@ def create_instance(offer_id, image, env):
         "template_id": 108305
     }
     url = apiurl(f"/asks/{offer_id}/")
-    print(f"Request URL: {url}")
-    print(f"Request JSON: {json_blob}")
     response = http_put(url, headers={
         "Authorization": f"Bearer {env['VAST_API_KEY']}",
         }, json=json_blob)
@@ -307,11 +324,7 @@ def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars()):
         if len(rented_nodes) >= max_nodes:
             break
         try:
-            print("offer is ***")
-            print(offer)
             instance = create_instance(offer["id"], image, env)
-            print("INSTANCE: ")
-            print(instance)
             rented_nodes.append({
                 "offer_id": offer["id"],
                 "instance_id": instance["new_contract"]
@@ -329,68 +342,60 @@ def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars()):
 
 def terminate_nodes(nodes):
     for node in nodes:
-        print("node", node)
         try:
-            time.sleep(2)  # Add a delay before terminating
-            destroy_instance(node["offer_id"])
+            destroy_instance(node["instance_id"])
         except Exception as e:
-            print(f"Error terminating node: {node['offer_id']}, {str(e)}")
+            print(f"Error terminating node: {node['instance_id']}, {str(e)}")
 
-def check_job_status():
-    # Get all keys with the prefix "task_status:"
-    task_keys = redis_client.keys("task_status:*")
-    
-    # Count the number of tasks in each status
+def check_job_status(job_id):
+    task_keys = redis_client.keys(f"celery-task-meta-*")
+
     status_counts = {
-        "QUEUED": 0,
-        "IN_PROGRESS": 0,
-        "TIMEOUT": 0,
-        "COMPLETE": 0,
-        "FAILED": 0
+        "PENDING": 0,
+        "STARTED": 0,
+        "RETRY": 0,
+        "FAILURE": 0,
+        "SUCCESS": 0
     }
-    
+
     for key in task_keys:
-        status = redis_client.get(key).decode("utf-8")
-        status_counts[status] += 1
-    
+        value = redis_client.get(key)
+        if value:
+            task_meta = json.loads(value)
+            status = task_meta.get("status")
+            if status in status_counts:
+                status_counts[status] += 1
+            else:
+                print(f"Unknown status '{status}' for task key '{key.decode('utf-8')}'")
+
+    print(f"Status counts from Redis: {status_counts}")
+
     return status_counts
 
-def monitor_job_status(job=None):
-    while True:
-        status_counts = check_job_status()
-        print(f"Job status: {status_counts}")
 
-        if status_counts["IN_PROGRESS"] == 0 and status_counts["QUEUED"] == 0:
+def monitor_job_status(job_id):
+    print(f"Monitoring status for job {job_id}")
+    while True:
+        status_counts = check_job_status(job_id)
+        print(f"Job {job_id} status: {status_counts}")
+
+        if status_counts["STARTED"] == 0 and status_counts["PENDING"] == 0:
             break
 
-        time.sleep(10)  # Wait for 10 seconds before checking again
+        time.sleep(30)  # Polling interval, adjust as needed
 
-        # Check for tasks that have been in the IN_PROGRESS state for more than 60 minutes
-        task_keys = redis_client.keys("task_status:*")
-        for key in task_keys:
-            status = redis_client.get(key).decode("utf-8")
-            if status == "IN_PROGRESS":
-                task_start_time = redis_client.get(f"task_start_time:{key.decode('utf-8').split(':')[1]}")
-                if task_start_time:
-                    task_start_time = float(task_start_time)
-                    current_time = time.time()
-                    if current_time - task_start_time > 3600:  # 60 minutes
-                        redis_client.set(key, "TIMEOUT")
-                        print(f"Task {key.decode('utf-8').split(':')[1]} marked as TIMEOUT by the manager")
+
+
+def attach_to_existing_job(job_id):
+    status_counts = check_job_status(job_id)
+    if status_counts["STARTED"] > 0 or status_counts["PENDING"] > 0:
+        print(f"Attaching to existing job {job_id}...")
+        return True
+    return False
+
 
 
 def handle_sigint(nodes):
     print("Received SIGINT. Terminating all running workers...")
     terminate_nodes(nodes)
     sys.exit(0)
-
-def attach_to_existing_job():
-    # Check if there are any tasks with the status "IN_PROGRESS" or "QUEUED"
-    status_counts = check_job_status()
-    
-    if status_counts["IN_PROGRESS"] > 0 or status_counts["QUEUED"] > 0:
-        print("Attaching to an existing job...")
-        return True
-    else:
-        print("No existing job found.")
-        return False

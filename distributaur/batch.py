@@ -3,14 +3,16 @@ import os
 import signal
 import sys
 import argparse
-from celery import chord
+import time
+from celery import chord, uuid
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
 
-from simian.vendor.vast import rent_nodes, terminate_nodes, monitor_job_status, handle_sigint, attach_to_existing_job
-from simian.worker import render_object, notify_completion
+from distributaur.vast import rent_nodes, terminate_nodes, monitor_job_status, handle_sigint, attach_to_existing_job, dump_redis_values
+from distributaur.worker import render_object, notify_completion
 
 def render_objects(
+    job_id,
     start_index,
     end_index,
     start_frame=0,
@@ -35,25 +37,21 @@ def render_objects(
 
     print(f"Rendering objects from {start_index} to {end_index}")
 
-    tasks = []
-    for i in range(start_index, end_index):
-        print(f"Queueing {i}")
-        combination = combinations[i]
-        tasks.append(
-            render_object.s(
-                combination_index=i,
-                combination=combination,
-                width=width,
-                height=height,
-                output_dir=output_dir,
-                hdri_path=hdri_path,
-                start_frame=start_frame,
-                end_frame=end_frame,
-            )
-        )
-
-    callback = notify_completion.s()
-    job = chord(tasks)(callback)  # Chord object is created here
+    tasks = [
+        render_object.s(
+            job_id,
+            i,
+            combination,
+            width,
+            height,
+            output_dir,
+            hdri_path,
+            start_frame,
+            end_frame,
+        ) for i, combination in enumerate(combinations[start_index:end_index])
+    ]
+    callback = notify_completion.s(job_id)  # Pass job_id to completion callback
+    job = chord(tasks)(callback)
 
     # Rent nodes using distributed_vast
     nodes = rent_nodes(max_price, max_nodes, image, api_key)
@@ -61,13 +59,20 @@ def render_objects(
     # Set up signal handler for SIGINT
     signal.signal(signal.SIGINT, lambda sig, frame: handle_sigint(nodes))
 
+    # Add delay to wait for workers to start
+    time.sleep(30)  # Adjust this time as needed
+
     # Monitor the job status
     monitor_job_status(job)  # Directly pass the job
+
+    # Dump Redis values for debugging
+    # dump_redis_values()
 
     # Terminate nodes once the job is complete
     terminate_nodes(nodes)
 
     print("All tasks have been completed!")
+    return job
 
 
 def main():
@@ -146,15 +151,24 @@ def main():
         default=None,
         help="API key for renting nodes. Defaults to None.",
     )
+    # add job_id
+    parser.add_argument(
+        "--job_id",
+        type=str,
+        default=str(uuid()),
+        help="Unique job ID for the batch.",
+    )
 
     args = parser.parse_args()
 
+    job_id = args.job_id
     # Check if attaching to an existing job
-    if attach_to_existing_job():
+    if attach_to_existing_job(job_id):
         # Monitor the job status
         monitor_job_status()
     else:
         render_objects(
+            job_id=job_id,
             start_index=args.start_index,
             end_index=args.end_index,
             start_frame=args.start_frame,
