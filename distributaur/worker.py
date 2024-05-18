@@ -11,9 +11,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
 
-from simian.utils import check_imports, get_blender_path, get_redis_values, upload_outputs
-
-check_imports()
+from distributaur.utils import get_blender_path, get_redis_values, upload_outputs
 
 redis_url = get_redis_values()
 pool = ConnectionPool.from_url(redis_url)
@@ -76,6 +74,7 @@ def render_object(
 
             application_path = get_blender_path()
 
+            # TODO: Factor out comand
             command = f"{application_path} --background --python simian/render.py -- {args}"
             print("Worker running: ", command)
 

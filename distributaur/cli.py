@@ -1,9 +1,8 @@
 import argparse
-import json
 import os
 import sys
 from distributaur.batch import render_objects, main as batch_main
-from distributaur.vast import check_job_status, dump_redis_values, redis_client
+from distributaur.vast import check_job_status, redis_client
 
 def prompt_user_settings():
     settings = {}
@@ -20,13 +19,51 @@ def prompt_user_settings():
     settings['image'] = input("Docker image (default: 'arfx/simian-worker:latest'): ") or 'arfx/simian-worker:latest'
     settings['api_key'] = input("Vast.ai API key (default: None): ")
 
+    settings['redis_host'] = input("Redis host (default: 'localhost'): ") or 'localhost'
+    settings['redis_port'] = int(input("Redis port (default: 6379): ") or 6379)
+    settings['redis_user'] = input("Redis user (default: ''): ")
+    settings['redis_password'] = input("Redis password (default: ''): ")
+    settings['hf_token'] = input("Hugging Face token (default: ''): ")
+    settings['hf_repo_id'] = input("Hugging Face repository ID (default: ''): ")
+    settings['hf_path'] = input("Hugging Face path (default: ''): ")
+
     return settings
 
-def start_new_job():
+def start_new_job(args):
     print("Starting a new job...")
     settings = prompt_user_settings()
     job_id = input("Enter a unique job ID: ")
+
+    # Override environment variables with provided arguments
+    os.environ['REDIS_HOST'] = args.redis_host or settings['redis_host'] or os.environ.get('REDIS_HOST', 'localhost')
+    os.environ['REDIS_PORT'] = str(args.redis_port or settings['redis_port'] or os.environ.get('REDIS_PORT', 6379))
+    os.environ['REDIS_USER'] = args.redis_user or settings['redis_user'] or os.environ.get('REDIS_USER', '')
+    os.environ['REDIS_PASSWORD'] = args.redis_password or settings['redis_password'] or os.environ.get('REDIS_PASSWORD', '')
+    os.environ['HF_TOKEN'] = args.hf_token or settings['hf_token'] or os.environ.get('HF_TOKEN', '')
+    os.environ['HF_REPO_ID'] = args.hf_repo_id or settings['hf_repo_id'] or os.environ.get('HF_REPO_ID', '')
+    os.environ['HF_PATH'] = args.hf_path or settings['hf_path'] or os.environ.get('HF_PATH', '')
+
     render_objects(job_id=job_id, **settings)
+
+def list_jobs():
+    # ... (rest of the list_jobs function remains the same)
+
+def main():
+    parser = argparse.ArgumentParser(description="Simian CLI")
+    parser.add_argument('action', choices=['start', 'list'], help="Action to perform")
+    parser.add_argument('--redis-host', help="Redis host")
+    parser.add_argument('--redis-port', type=int, help="Redis port")
+    parser.add_argument('--redis-user', help="Redis user")
+    parser.add_argument('--redis-password', help="Redis password")
+    parser.add_argument('--hf-token', help="Hugging Face token")
+    parser.add_argument('--hf-repo-id', help="Hugging Face repository ID")
+    parser.add_argument('--hf-path', help="Hugging Face path")
+    args = parser.parse_args()
+
+    if args.action == 'start':
+        start_new_job(args)
+    elif args.action == 'list':
+        list_jobs()
 
 def list_jobs():
     job_keys = redis_client.keys("celery-task-meta-*")
@@ -72,16 +109,6 @@ def list_jobs():
             break
         else:
             print("Invalid selection.")
-
-def main():
-    parser = argparse.ArgumentParser(description="Simian CLI")
-    parser.add_argument('action', choices=['start', 'list'], help="Action to perform")
-    args = parser.parse_args()
-
-    if args.action == 'start':
-        start_new_job()
-    elif args.action == 'list':
-        list_jobs()
 
 if __name__ == "__main__":
     main()

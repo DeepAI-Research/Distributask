@@ -6,8 +6,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 simian_path = os.path.join(current_dir, "../")
 sys.path.append(simian_path)
 
-from simian.vendor.vast import rent_nodes, terminate_nodes, headers
-from simian.utils import get_env_vars
+from distributaur.vast import rent_nodes, terminate_nodes, headers
+from distributaur.utils import get_env_vars
 
 class TestDistributedVast(unittest.TestCase):
     def test_rent_run_terminate(self):
