@@ -305,7 +305,7 @@ def search_offers(max_price, api_key):
     }
     url = (
         base_url
-        + '?q={"gpu_ram":">=4","rentable":{"eq":true},"dph_total":{"lte":0.1480339514817041},"sort_option":{"0":["dph_total","asc"],"1":["total_flops","asc"]}}'
+        + '?q={"gpu_ram":">=4","rentable":{"eq":true},"dph_total":{"lte":' + max_price + '},"sort_option":{"0":["dph_total","asc"],"1":["total_flops","asc"]}}'
     )
 
     print("url", url)

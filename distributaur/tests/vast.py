@@ -26,7 +26,7 @@ def rented_nodes(vast_api_key):
 
     max_price = 0.5
     max_nodes = 1
-    image = "arfx/simian-worker:latest"
+    image = "arfx/distributaur-example-worker-worker:latest"
 
     nodes = rent_nodes(max_price, max_nodes, image, vast_api_key)
     yield nodes

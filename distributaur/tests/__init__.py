@@ -1,1 +1,1 @@
-from .vast import *
+from distributaur.vast import *
