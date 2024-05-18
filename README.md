@@ -2,7 +2,7 @@
 
 A super simple way to distribute rendering tasks across multiple machines.
 
-<img src="resources/logo.png">
+<img src="docs/assets/banner.png">
 
 [![Lint and Test](https://github.com/RaccoonResearch/distributaur/actions/workflows/test.yml/badge.svg)](https://github.com/RaccoonResearch/distributaur/actions/workflows/test.yml)
 [![PyPI version](https://badge.fury.io/py/distributaur.svg)](https://badge.fury.io/py/distributaur)
