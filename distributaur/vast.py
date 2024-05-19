@@ -5,18 +5,14 @@ import json
 from typing import Dict
 import time
 import re
-from redis import ConnectionPool, Redis
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
-from distributaur.utils import get_env_vars, get_redis_values
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
+
+from distributaur.utils import get_env_vars, get_redis_connection
 
 server_url_default = "https://console.vast.ai"
 headers = {}
-
-redis_url = get_redis_values()
-pool = ConnectionPool.from_url(redis_url)
-redis_client = Redis(connection_pool=pool)
-
+redis_client = get_redis_connection()
 
 def dump_redis_values():
     keys = redis_client.keys("*")
@@ -381,7 +377,9 @@ def destroy_instance(instance_id):
 
 
 def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars()):
-    env["VAST_API_KEY"] = api_key or env.get("VAST_API_KEY")
+    api_key = api_key or env.get("VAST_API_KEY") or os.getenv("VAST_API_KEY")
+    print("api key")
+    print(api_key)
     offers = search_offers(max_price, api_key)
     rented_nodes = []
     for offer in offers:
@@ -452,7 +450,13 @@ def attach_to_existing_job(job_id):
     return False
 
 
-def handle_sigint(nodes):
-    print("Received SIGINT. Terminating all running workers...")
-    terminate_nodes(nodes)
-    sys.exit(0)
+def handle_signal(nodes):
+    """Handle SIGINT for graceful shutdown."""
+    from distributaur.vast import terminate_nodes
+
+    def signal_handler(sig, frame):
+        print("SIGINT received, shutting down...")
+        terminate_nodes(nodes)
+        sys.exit(0)
+
+    return signal_handler
