@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     try:
         env = get_env_vars()
-        api_key = env.get("VAST_API_KEY") or os.getenv("VAST_API_KEY")
+        api_key = env.get("VAST_API_KEY")
         if not api_key:
             raise ValueError("Vast API key not found in environment variables.")
 

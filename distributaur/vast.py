@@ -377,7 +377,7 @@ def destroy_instance(instance_id):
 
 
 def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars()):
-    api_key = api_key or env.get("VAST_API_KEY") or os.getenv("VAST_API_KEY")
+    api_key = api_key or env.get("VAST_API_KEY")
     print("api key")
     print(api_key)
     offers = search_offers(max_price, api_key)

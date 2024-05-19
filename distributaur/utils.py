@@ -32,7 +32,13 @@ def close_redis_connection(client):
     client.close()
 
 def get_env_vars(path=".env"):
+    # combine env vars from .env file and system environment
+    
     env_vars = {}
+    
+    for key, value in os.environ.items():
+        env_vars[key] = value
+    
     if not os.path.exists(path):
         return env_vars
     with open(path, "r") as f:
