@@ -9,10 +9,11 @@ import re
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
 from distributaur.utils import get_env_vars, get_redis_connection
+from distributaur.config import config
 
 server_url_default = "https://console.vast.ai"
 headers = {}
-redis_client = get_redis_connection()
+redis_client = get_redis_connection(config)
 
 def dump_redis_values():
     keys = redis_client.keys("*")
@@ -292,7 +293,8 @@ def parse_env(envs):
 import urllib.parse
 
 
-def search_offers(max_price, api_key):
+def search_offers(max_price):
+    api_key = config.get("VAST_API_KEY")
     base_url = "https://console.vast.ai/api/v0/bundles/"
     headers = {
         "Accept": "application/json",
@@ -301,7 +303,7 @@ def search_offers(max_price, api_key):
     }
     url = (
         base_url
-        + '?q={"gpu_ram":">=4","rentable":{"eq":true},"dph_total":{"lte":0.1480339514817041},"sort_option":{"0":["dph_total","asc"],"1":["total_flops","asc"]}}'
+        + '?q={"gpu_ram":">=4","rentable":{"eq":true},"dph_total":{"lte":' + max_price + '},"sort_option":{"0":["dph_total","asc"],"1":["total_flops","asc"]}}'
     )
 
     print("url", url)
@@ -319,22 +321,11 @@ def search_offers(max_price, api_key):
 
 
 def create_instance(offer_id, image, env):
-    # check that the env is a dictionary and has the vars REDIS_HOST, REDIS_PORT, REDIS_USER, REDIS_PASSWORD, HF_TOKEN, HF_REPO_ID, HF_PATH, VAST_API_KEY
     if env is None:
         raise ValueError("env is required")
 
     if not isinstance(env, dict):
         raise ValueError("env must be a dictionary")
-
-    if not all(
-        k in env for k in ["REDIS_HOST", "REDIS_PORT", "REDIS_USER", "REDIS_PASSWORD"]
-    ):
-        # warn about missing redis env vars
-        print("Warning: Missing Redis environment variables")
-
-    if not all(k in env for k in ["HF_TOKEN", "HF_REPO_ID", "HF_PATH"]):
-        # warn about missing huggingface env vars
-        print("Warning: Missing Hugging Face environment variables")
 
     if not "VAST_API_KEY" in env:
         # warn about missing vast api key
@@ -345,7 +336,7 @@ def create_instance(offer_id, image, env):
         "image": image,
         "env": "",
         "disk": 16,  # Set a non-zero value for disk
-        "onstart": f"export PATH=$PATH:/ &&  cd ../ && REDIS_HOST={env['REDIS_HOST']} REDIS_PORT={env['REDIS_PORT']} REDIS_USER={env['REDIS_USER']} REDIS_PASSWORD={env['REDIS_PASSWORD']} HF_TOKEN={env['HF_TOKEN']} HF_REPO_ID={env['HF_REPO_ID']} HF_PATH={env['HF_PATH']} VAST_API_KEY={env['VAST_API_KEY']} celery -A simian.worker worker --loglevel=info",
+        "onstart": f"export PATH=$PATH:/ &&  cd ../ && REDIS_HOST={config.get('REDIS_HOST')} REDIS_PORT={config.get('REDIS_PORT')} REDIS_USER={config.get('REDIS_USER')} REDIS_PASSWORD={config.get('REDIS_PASSWORD')} HF_TOKEN={config.get('HF_TOKEN')} HF_REPO_ID={config.get('HF_REPO_ID')} HF_PATH={config.get('HF_PATH')} VAST_API_KEY={config.get('VAST_API_KEY')} celery -A simian.worker worker --loglevel=info",
         "runtype": "ssh ssh_proxy",
         "image_login": None,
         "python_utf8": False,
@@ -368,8 +359,8 @@ def create_instance(offer_id, image, env):
 
 
 def destroy_instance(instance_id):
-    env = get_env_vars()
-    headers = {"Authorization": f'Bearer {env["VAST_API_KEY"]}'}
+    api_key = config.get("VAST_API_KEY")
+    headers = {"Authorization": f'Bearer {api_key}'}
     url = apiurl(f"/instances/{instance_id}/")
     print(f"Terminating instance: {instance_id}")
     response = http_del(url, headers=headers, json={})

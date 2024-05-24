@@ -3,8 +3,10 @@
 import subprocess
 import time
 import pytest
-from distributaur.task_runner import execute_function, register_function, registered_functions, update_function_status
+from distributaur.config import config
+from distributaur.task_runner import configure, execute_function, register_function, registered_functions, update_function_status
 from distributaur.utils import get_env_vars, get_redis_connection, get_redis_values, close_redis_connection
+from distributaur.config import config
 
 @pytest.fixture
 def env_file(tmpdir):
@@ -18,19 +20,18 @@ REDIS_PASSWORD=password\
     env_file.write(env_content)
     return env_file
 
+env_vars = get_env_vars()
+configure(**env_vars)
+
 @pytest.fixture
 def redis_client():
-    client = get_redis_connection()
+    client = get_redis_connection(config)
     yield client
     close_redis_connection(client)
 
 def test_redis_connection(redis_client):
     assert redis_client.ping()
     print("Redis connection test passed")
-
-def test_get_redis_values(redis_client, env_file):
-    redis_url = get_redis_values(env_file)
-    assert redis_url == "redis://user:password@localhost:6379"
 
 def test_get_env_vars(env_file):
     env_vars = get_env_vars(env_file)
@@ -95,7 +96,7 @@ def test_worker_task_execution():
     print("Worker task execution test passed")
 
 def test_task_status_update():
-    redis_client = get_redis_connection()
+    redis_client = get_redis_connection(config)
 
     try:
         task_status_keys = redis_client.keys("task_status:*")

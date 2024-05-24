@@ -1,6 +1,8 @@
-# /Users/shawwalters/distributoor/example_worker.py
+from distributaur.task_runner import configure, register_function, app
+from distributaur.utils import get_env_vars
 
-from distributaur.task_runner import register_function, app
+env_vars = get_env_vars()
+configure(**env_vars)
 
 # Ensure the Celery app is available as `celery`
 celery = app

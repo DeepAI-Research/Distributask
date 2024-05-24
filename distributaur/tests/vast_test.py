@@ -3,12 +3,16 @@ import sys
 import time
 import pytest
 from unittest.mock import patch
+from distributaur.task_runner import configure
 from distributaur.utils import get_env_vars, close_redis_connection, get_redis_connection
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
 from distributaur.vast import rent_nodes, terminate_nodes, handle_signal, headers
+from distributaur.config import config
 
+env_vars = get_env_vars()
+configure(**env_vars)
 
 @pytest.fixture(scope="module")
 def vast_api_key():
@@ -48,5 +52,5 @@ def test_handle_signal():
 
 # Add teardown to close Redis connections
 def teardown_module(module):
-    client = get_redis_connection()
+    client = get_redis_connection(config)
     close_redis_connection(client)

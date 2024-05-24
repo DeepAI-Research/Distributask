@@ -1,13 +1,10 @@
 import json
-import os
-import sys
 import pytest
 from unittest.mock import MagicMock, patch
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
-
 from distributaur.task_runner import execute_function, register_function, update_function_status, registered_functions
 from distributaur.utils import close_redis_connection, get_redis_connection
+from distributaur.config import config
 
 @pytest.fixture
 def mock_task_function():
@@ -61,5 +58,5 @@ def test_update_function_status(mock_get_redis_connection):
 
 # Add teardown to close Redis connections
 def teardown_module(module):
-    client = get_redis_connection()
+    client = get_redis_connection(config)
     close_redis_connection(client)
