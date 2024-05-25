@@ -15,7 +15,6 @@ pool = None
 
 
 def get_env_vars(path=".env.default"):
-    print("get_env_vars")
     env_vars = {}
     if os.path.exists(path):
         with open(path, "r") as f:
@@ -46,11 +45,6 @@ def get_redis_values(config):
     port = config.get("REDIS_PORT", None)
     username = config.get("REDIS_USER", None)
 
-    print("host", host)
-    print("password", password)
-    print("port", port)
-    print("username", username)
-
     if None in [host, password, port, username]:
         raise ValueError("Missing required Redis configuration values")
 
@@ -74,7 +68,6 @@ def close_redis_connection(client):
 
 def configure(**kwargs):
     global app
-    print("configuring")
     config.configure(**kwargs)
     redis_url = get_redis_values(config)
     app = Celery("distributaur", broker=redis_url, backend=redis_url)
@@ -84,8 +77,6 @@ def configure(**kwargs):
 
 
 env_vars = get_env_vars(".env")
-print("env_vars")
-print(env_vars)
 configure(**env_vars)
 
 

@@ -328,10 +328,6 @@ def create_instance(offer_id, image, env):
     if env is None:
         raise ValueError("env is required")
 
-    print("Creating instance with offer_id", offer_id)
-    print("env is")
-    print(env)
-
     if not isinstance(env, dict):
         raise ValueError("env must be a dictionary")
 
@@ -383,8 +379,6 @@ def destroy_instance(instance_id):
 
 def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars(".env")):
     api_key = api_key or env.get("VAST_API_KEY")
-    print("api key")
-    print(api_key)
     offers = search_offers(max_price)
     rented_nodes = []
     for offer in offers:

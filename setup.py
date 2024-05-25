@@ -3,38 +3,40 @@ from setuptools import setup
 long_description = ""
 with open("README.md", "r") as fh:
     long_description = fh.read()
-    long_description = long_description.split('\n')
-    long_description = [line for line in long_description if not '<img' in line]
-    long_description = '\n'.join(long_description)
-    
+    long_description = long_description.split("\n")
+    long_description = [line for line in long_description if not "<img" in line]
+    long_description = "\n".join(long_description)
+
 with open("version.txt", "r") as fh:
     version = fh.read()
-    
+
 with open("requirements.txt", "r") as fh:
     install_requires = fh.read()
-    install_requires = install_requires.split('\n')
-    install_requires = [line.split("=")[0].split(">")[0].split("<")[0] for line in install_requires]
+    install_requires = install_requires.split("\n")
+    install_requires = [
+        line.split("=")[0].split(">")[0].split("<")[0] for line in install_requires
+    ]
 
 setup(
-    name='distributaur',
+    name="distributaur",
     version=version,
-    description='Simple task manager and job queue for distributed rendering. Built on celery and redis.',
+    description="Simple task manager and job queue for distributed rendering. Built on celery and redis.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/RaccoonResearch/distributaur',
-    author='Raccoon Research',
-    author_email='shawmakesmagic@gmail.com',
-    license='MIT',
-    packages=['distributaur'],
+    url="https://github.com/RaccoonResearch/distributaur",
+    author="Raccoon Research",
+    author_email="shawmakesmagic@gmail.com",
+    license="MIT",
+    packages=["distributaur"],
     install_requires=install_requires,
-    readme = "README.md",
+    readme="README.md",
     classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: MIT License',  
-        'Operating System :: POSIX :: Linux',        
-        'Programming Language :: Python :: 3',
-        'Operating System :: MacOS :: MacOS X',
-        'Operating System :: Microsoft :: Windows'
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows",
     ],
 )

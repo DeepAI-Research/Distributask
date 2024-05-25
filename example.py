@@ -7,18 +7,32 @@ import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 
-from distributaur.vast import attach_to_existing_job, monitor_job_status, rent_nodes, terminate_nodes, handle_signal
-from distributaur.core import configure, execute_function, register_function, get_env_vars, config, call_function_task
+from distributaur.vast import (
+    attach_to_existing_job,
+    monitor_job_status,
+    rent_nodes,
+    terminate_nodes,
+    handle_signal,
+)
+from distributaur.core import (
+    configure,
+    execute_function,
+    register_function,
+    get_env_vars,
+    config,
+    call_function_task,
+)
+
 
 def example_function(arg1, arg2):
     return f"Result: arg1={arg1}, arg2={arg2}"
 
+
 register_function(example_function)
 
+
 def setup_and_run(config):
-    tasks = [
-        execute_function(config["task_func"], config["task_params"])
-    ]
+    tasks = [execute_function(config["task_func"], config["task_params"])]
 
     for task in tasks:
         print(f"Task {task.id} dispatched.")
@@ -28,6 +42,7 @@ def setup_and_run(config):
 
     print("All tasks have been completed!")
 
+
 def start_worker():
     worker_cmd = [
         "celery",
@@ -35,10 +50,11 @@ def start_worker():
         "example_worker",
         "worker",
         "--loglevel=info",
-        "--concurrency=1"
+        "--concurrency=1",
     ]
     worker_process = subprocess.Popen(worker_cmd)
     return worker_process
+
 
 if __name__ == "__main__":
     # Load environment variables from .env file
@@ -56,7 +72,7 @@ if __name__ == "__main__":
         "max_nodes": 1,
         "docker_image": "your-docker-image",
         "task_func": "example_function",
-        "task_params": {"arg1": 1, "arg2": "a"}
+        "task_params": {"arg1": 1, "arg2": "a"},
     }
 
     # Start the worker process
