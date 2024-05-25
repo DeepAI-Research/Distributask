@@ -15,7 +15,7 @@ pool = None
 
 
 def get_env_vars(path=".env.default"):
-    env_vars = {}
+    env_vars = os.environ.copy()
     if os.path.exists(path):
         with open(path, "r") as f:
             for line in f:
