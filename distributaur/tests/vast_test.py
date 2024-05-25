@@ -3,20 +3,19 @@ import sys
 import time
 import pytest
 from unittest.mock import patch
-from distributaur.task_runner import configure
-from distributaur.utils import get_env_vars, close_redis_connection, get_redis_connection
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
+from distributaur.core import configure, config, get_env_vars, close_redis_connection, get_redis_connection
 from distributaur.vast import rent_nodes, terminate_nodes, handle_signal, headers
-from distributaur.config import config
 
-env_vars = get_env_vars()
+env_vars = get_env_vars(".env")
+print("env_vars")
+print(env_vars)
 configure(**env_vars)
 
 @pytest.fixture(scope="module")
 def vast_api_key():
-    env_vars = get_env_vars()
     key = os.getenv("VAST_API_KEY") or env_vars.get("VAST_API_KEY")
     if not key:
         pytest.fail("Vast API key not found.")

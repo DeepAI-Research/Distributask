@@ -3,15 +3,17 @@
 import os
 import sys
 import subprocess
-import signal
 import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 
-from distributaur.config import config
-from distributaur.utils import get_env_vars
 from distributaur.vast import attach_to_existing_job, monitor_job_status, rent_nodes, terminate_nodes, handle_signal
-from distributaur.task_runner import configure, execute_function, register_function
+from distributaur.core import configure, execute_function, register_function, get_env_vars, config, call_function_task
+
+def example_function(arg1, arg2):
+    return f"Result: arg1={arg1}, arg2={arg2}"
+
+register_function(example_function)
 
 def setup_and_run(config):
     tasks = [
@@ -53,7 +55,7 @@ if __name__ == "__main__":
         "max_price": 0.10,
         "max_nodes": 1,
         "docker_image": "your-docker-image",
-        "task_func": "run_workload",
+        "task_func": "example_function",
         "task_params": {"arg1": 1, "arg2": "a"}
     }
 

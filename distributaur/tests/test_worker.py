@@ -1,11 +1,12 @@
-from distributaur.task_runner import configure, register_function, app
-from distributaur.utils import get_env_vars
+from distributaur.core import configure, register_function, app, get_env_vars, config
 
-env_vars = get_env_vars()
+env_vars = get_env_vars(".env")
+print("env_vars")
+print(env_vars)
 configure(**env_vars)
 
-# Ensure the Celery app is available as `celery`
-celery = app
+# Disable task events
+app.conf.worker_send_task_events = False
 
 # Define and register the example_function
 def example_function(arg1, arg2):
