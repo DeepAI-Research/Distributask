@@ -24,6 +24,7 @@ def get_env_vars(path=".env.default"):
                 env_vars[key] = value
     return env_vars
 
+
 class Config:
     def __init__(self):
         self.settings = {}
@@ -35,24 +36,27 @@ class Config:
     def get(self, key, default=None):
         return self.settings.get(key, default)
 
+
 config = Config()
+
 
 def get_redis_values(config):
     host = config.get("REDIS_HOST", None)
     password = config.get("REDIS_PASSWORD", None)
     port = config.get("REDIS_PORT", None)
     username = config.get("REDIS_USER", None)
-    
+
     print("host", host)
     print("password", password)
     print("port", port)
     print("username", username)
-    
+
     if None in [host, password, port, username]:
         raise ValueError("Missing required Redis configuration values")
-    
+
     redis_url = f"redis://{username}:{password}@{host}:{port}"
     return redis_url
+
 
 def get_redis_connection(config, force_new=False):
     """Retrieve Redis connection from the connection pool."""
@@ -67,30 +71,29 @@ def close_redis_connection(client):
     """Close the Redis connection."""
     client.close()
 
+
 def configure(**kwargs):
     global app
-    print('configuring')
+    print("configuring")
     config.configure(**kwargs)
     redis_url = get_redis_values(config)
-    app = Celery(
-        "distributaur",
-        broker=redis_url,
-        backend=redis_url
-    )
+    app = Celery("distributaur", broker=redis_url, backend=redis_url)
     # Disable task events
     app.conf.worker_send_task_events = False
     print("Celery configured.")
+
 
 env_vars = get_env_vars(".env")
 print("env_vars")
 print(env_vars)
 configure(**env_vars)
 
-@app.task(name='call_function_task')
+
+@app.task(name="call_function_task")
 def call_function_task(func_name, args_json):
     """
     Handle a task by executing the registered function with the provided arguments.
-    
+
     Args:
         func_name (str): The name of the registered function to execute.
         args_json (str): The JSON string representation of the arguments for the function.
@@ -107,15 +110,17 @@ def call_function_task(func_name, args_json):
     update_function_status(call_function_task.request.id, "completed")
     return result
 
+
 def register_function(func):
     """Decorator to register a function in the dictionary."""
     registered_functions[func.__name__] = func
     return func
 
+
 def execute_function(func_name, args):
     """
     Execute a task by passing the function name and arguments.
-    
+
     Args:
         func_name (str): The name of the registered function to execute.
         args (dict): The dictionary of arguments for the function.
@@ -124,10 +129,11 @@ def execute_function(func_name, args):
     print(f"Dispatching task with function: {func_name}, and args: {args_json}")
     return call_function_task.delay(func_name, args_json)
 
+
 def update_function_status(task_id, status):
     """
     Update the status of a task in Redis.
-    
+
     Args:
         task_id (str): The ID of the task.
         status (str): The new status of the task.

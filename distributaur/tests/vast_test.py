@@ -6,13 +6,20 @@ from unittest.mock import patch
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
-from distributaur.core import configure, config, get_env_vars, close_redis_connection, get_redis_connection
+from distributaur.core import (
+    configure,
+    config,
+    get_env_vars,
+    close_redis_connection,
+    get_redis_connection,
+)
 from distributaur.vast import rent_nodes, terminate_nodes, handle_signal, headers
 
 env_vars = get_env_vars(".env")
 print("env_vars")
 print(env_vars)
 configure(**env_vars)
+
 
 @pytest.fixture(scope="module")
 def vast_api_key():
@@ -48,6 +55,7 @@ def test_handle_signal():
             signal_handler(None, None)
         assert exc_info.value.code == 0
         mock_terminate_nodes.assert_called_once_with(nodes)
+
 
 # Add teardown to close Redis connections
 def teardown_module(module):

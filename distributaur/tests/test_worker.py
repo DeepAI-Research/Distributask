@@ -8,8 +8,10 @@ configure(**env_vars)
 # Disable task events
 app.conf.worker_send_task_events = False
 
+
 # Define and register the example_function
 def example_function(arg1, arg2):
     return f"Result: arg1={arg1}, arg2={arg2}"
+
 
 register_function(example_function)

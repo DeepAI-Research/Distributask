@@ -14,6 +14,7 @@ server_url_default = "https://console.vast.ai"
 headers = {}
 redis_client = get_redis_connection(config, force_new=True)
 
+
 def dump_redis_values():
     keys = redis_client.keys("*")
     for key in keys:
@@ -304,7 +305,9 @@ def search_offers(max_price):
     }
     url = (
         base_url
-        + '?q={"gpu_ram":">=4","rentable":{"eq":true},"dph_total":{"lte":' + str(max_price) + '},"sort_option":{"0":["dph_total","asc"],"1":["total_flops","asc"]}}'
+        + '?q={"gpu_ram":">=4","rentable":{"eq":true},"dph_total":{"lte":'
+        + str(max_price)
+        + '},"sort_option":{"0":["dph_total","asc"],"1":["total_flops","asc"]}}'
     )
 
     print("url", url)
@@ -324,7 +327,7 @@ def search_offers(max_price):
 def create_instance(offer_id, image, env):
     if env is None:
         raise ValueError("env is required")
-    
+
     print("Creating instance with offer_id", offer_id)
     print("env is")
     print(env)
@@ -360,25 +363,25 @@ def create_instance(offer_id, image, env):
         },
         json=json_blob,
     )
-    
+
     # check on response
     if response.status_code != 200:
         print(f"Failed to create instance: {response.text}")
         raise Exception(f"Failed to create instance: {response.text}")
-    
+
     return response.json()
 
 
 def destroy_instance(instance_id):
     api_key = config.get("VAST_API_KEY")
-    headers = {"Authorization": f'Bearer {api_key}'}
+    headers = {"Authorization": f"Bearer {api_key}"}
     url = apiurl(f"/instances/{instance_id}/")
     print(f"Terminating instance: {instance_id}")
     response = http_del(url, headers=headers, json={})
     return response.json()
 
 
-def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars('.env')):
+def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars(".env")):
     api_key = api_key or env.get("VAST_API_KEY")
     print("api key")
     print(api_key)

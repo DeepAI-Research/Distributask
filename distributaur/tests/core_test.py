@@ -6,7 +6,19 @@ import subprocess
 import time
 import pytest
 
-from distributaur.core import execute_function, register_function, registered_functions, close_redis_connection, get_redis_connection, config, configure, registered_functions, update_function_status, get_env_vars
+from distributaur.core import (
+    execute_function,
+    register_function,
+    registered_functions,
+    close_redis_connection,
+    get_redis_connection,
+    config,
+    configure,
+    registered_functions,
+    update_function_status,
+    get_env_vars,
+)
+
 
 @pytest.fixture
 def mock_task_function():
@@ -28,6 +40,7 @@ def test_register_function(mock_task_function):
     assert registered_functions[mock_task_function.__name__] == mock_task_function
     print("Test passed")
 
+
 @patch("distributaur.core.call_function_task.delay")
 def test_execute_function(mock_delay, mock_task_function):
     """
@@ -36,11 +49,12 @@ def test_execute_function(mock_delay, mock_task_function):
     mock_task_function.__name__ = "mock_task"  # Set the __name__ attribute
     register_function(mock_task_function)
 
-    params = {'arg1': 1, 'arg2': 2}
+    params = {"arg1": 1, "arg2": 2}
     execute_function(mock_task_function.__name__, params)
 
     mock_delay.assert_called_once_with(mock_task_function.__name__, json.dumps(params))
     print("Test passed")
+
 
 @patch("distributaur.core.get_redis_connection")
 def test_update_function_status(mock_get_redis_connection):
@@ -58,10 +72,12 @@ def test_update_function_status(mock_get_redis_connection):
     mock_redis_client.set.assert_called_once_with(f"task_status:{task_id}", status)
     print("Test passed")
 
+
 # Add teardown to close Redis connections
 def teardown_module(module):
     client = get_redis_connection(config)
     close_redis_connection(client)
+
 
 @pytest.fixture
 def redis_client():
@@ -69,13 +85,16 @@ def redis_client():
     yield client
     close_redis_connection(client)
 
+
 def test_redis_connection(redis_client):
     assert redis_client.ping()
     print("Redis connection test passed")
 
+
 def test_get_redis_connection(redis_client):
     assert redis_client.ping()
     print("Redis connection test passed")
+
 
 def test_register_function():
     def example_function(arg1, arg2):
@@ -86,6 +105,7 @@ def test_register_function():
     assert registered_functions["example_function"] == example_function
     print("Task registration test passed")
 
+
 def test_execute_function():
     def example_function(arg1, arg2):
         return f"Result: arg1={arg1}, arg2={arg2}"
@@ -95,6 +115,7 @@ def test_execute_function():
     task = execute_function("example_function", task_params)
     assert task.id is not None
     print("Task execution test passed")
+
 
 def test_worker_task_execution():
     def example_function(arg1, arg2):
@@ -107,7 +128,7 @@ def test_worker_task_execution():
         "-A",
         "distributaur.tests.test_worker",
         "worker",
-        "--loglevel=info"
+        "--loglevel=info",
     ]
     print("worker_cmd")
     print(worker_cmd)
@@ -125,6 +146,7 @@ def test_worker_task_execution():
     worker_process.wait()
 
     print("Worker task execution test passed")
+
 
 def test_task_status_update():
     redis_client = get_redis_connection(config)
@@ -147,4 +169,3 @@ def test_task_status_update():
         print("Task status update test passed")
     finally:
         close_redis_connection(redis_client)
-
