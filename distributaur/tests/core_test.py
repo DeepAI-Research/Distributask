@@ -1,45 +1,77 @@
-# /Users/shawwalters/distributoor/distributaur/tests/utils_test.py
+import json
+import pytest
+from unittest.mock import MagicMock, patch
 
 import subprocess
 import time
 import pytest
-from distributaur.task_runner import execute_function, register_function, registered_functions, update_function_status
-from distributaur.utils import get_env_vars, get_redis_connection, get_redis_values, close_redis_connection
+
+from distributaur.core import execute_function, register_function, registered_functions, close_redis_connection, get_redis_connection, config, configure, registered_functions, update_function_status, get_env_vars
 
 @pytest.fixture
-def env_file(tmpdir):
-    env_content = """\
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_USER=user
-REDIS_PASSWORD=password\
-"""
-    env_file = tmpdir.join(".env")
-    env_file.write(env_content)
-    return env_file
+def mock_task_function():
+    """
+    Fixture that returns a mock task function.
+    """
+    return MagicMock()
+
+
+def test_register_function(mock_task_function):
+    """
+    Test the register_function function.
+    """
+    mock_task_function.__name__ = "mock_task"  # Set the __name__ attribute
+    decorated_task = register_function(mock_task_function)
+
+    assert callable(decorated_task)
+    assert mock_task_function.__name__ in registered_functions
+    assert registered_functions[mock_task_function.__name__] == mock_task_function
+    print("Test passed")
+
+@patch("distributaur.core.call_function_task.delay")
+def test_execute_function(mock_delay, mock_task_function):
+    """
+    Test the execute_function function.
+    """
+    mock_task_function.__name__ = "mock_task"  # Set the __name__ attribute
+    register_function(mock_task_function)
+
+    params = {'arg1': 1, 'arg2': 2}
+    execute_function(mock_task_function.__name__, params)
+
+    mock_delay.assert_called_once_with(mock_task_function.__name__, json.dumps(params))
+    print("Test passed")
+
+@patch("distributaur.core.get_redis_connection")
+def test_update_function_status(mock_get_redis_connection):
+    """
+    Test the update_function_status function.
+    """
+    mock_redis_client = MagicMock()
+    mock_get_redis_connection.return_value = mock_redis_client
+
+    task_id = "task_123"
+    status = "SUCCESS"
+
+    update_function_status(task_id, status)
+
+    mock_redis_client.set.assert_called_once_with(f"task_status:{task_id}", status)
+    print("Test passed")
+
+# Add teardown to close Redis connections
+def teardown_module(module):
+    client = get_redis_connection(config)
+    close_redis_connection(client)
 
 @pytest.fixture
 def redis_client():
-    client = get_redis_connection()
+    client = get_redis_connection(config, force_new=True)
     yield client
     close_redis_connection(client)
 
 def test_redis_connection(redis_client):
     assert redis_client.ping()
     print("Redis connection test passed")
-
-def test_get_redis_values(redis_client, env_file):
-    redis_url = get_redis_values(env_file)
-    assert redis_url == "redis://user:password@localhost:6379"
-
-def test_get_env_vars(env_file):
-    env_vars = get_env_vars(env_file)
-    assert env_vars == {
-        "REDIS_HOST": "localhost",
-        "REDIS_PORT": "6379",
-        "REDIS_USER": "user",
-        "REDIS_PASSWORD": "password",
-    }
 
 def test_get_redis_connection(redis_client):
     assert redis_client.ping()
@@ -75,17 +107,17 @@ def test_worker_task_execution():
         "-A",
         "distributaur.tests.test_worker",
         "worker",
-        "--loglevel=info",
-        "--concurrency=1",
-        "--heartbeat-interval=1",
+        "--loglevel=info"
     ]
+    print("worker_cmd")
+    print(worker_cmd)
     worker_process = subprocess.Popen(worker_cmd)
 
     time.sleep(5)
 
     task_params = {"arg1": 10, "arg2": 20}
     task = execute_function("example_function", task_params)
-    result = task.get(timeout=10)
+    result = task.get(timeout=3)
 
     assert result == "Result: arg1=10, arg2=20"
 
@@ -95,7 +127,7 @@ def test_worker_task_execution():
     print("Worker task execution test passed")
 
 def test_task_status_update():
-    redis_client = get_redis_connection()
+    redis_client = get_redis_connection(config)
 
     try:
         task_status_keys = redis_client.keys("task_status:*")
