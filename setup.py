@@ -1,16 +1,22 @@
 from setuptools import setup
+import sys
+import os
+
+# get the cwd where the setup.py file is located
+file_path = os.path.dirname(os.path.realpath(__file__))
 
 long_description = ""
-with open("README.md", "r") as fh:
+with open(os.path.join(file_path, "README.md"), "r") as fh:
     long_description = fh.read()
     long_description = long_description.split("\n")
     long_description = [line for line in long_description if not "<img" in line]
     long_description = "\n".join(long_description)
 
-with open("version.txt", "r") as fh:
+with open(os.path.join(file_path, "version.txt"), "r") as fh:
+    print(fh.read())
     version = fh.read()
 
-with open("requirements.txt", "r") as fh:
+with open(os.path.join(file_path, "requirements.txt"), "r") as fh:
     install_requires = fh.read()
     install_requires = install_requires.split("\n")
     install_requires = [
@@ -19,7 +25,7 @@ with open("requirements.txt", "r") as fh:
 
 setup(
     name="distributaur",
-    version=version,
+    version="0.0.1",
     description="Simple task manager and job queue for distributed rendering. Built on celery and redis.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -29,7 +35,6 @@ setup(
     license="MIT",
     packages=["distributaur"],
     install_requires=install_requires,
-    readme="README.md",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
