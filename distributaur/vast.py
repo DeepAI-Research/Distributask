@@ -3,16 +3,14 @@ import sys
 import requests
 import json
 from typing import Dict
-import time
 import re
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
-from distributaur.core import get_env_vars, get_redis_connection, config
+from distributaur.core import get_env_vars, redis_client, config
 
 server_url_default = "https://console.vast.ai"
 headers = {}
-redis_client = get_redis_connection(config, force_new=True)
 
 
 def dump_redis_values():
@@ -372,7 +370,7 @@ def destroy_instance(instance_id):
     api_key = config.get("VAST_API_KEY")
     headers = {"Authorization": f"Bearer {api_key}"}
     url = apiurl(f"/instances/{instance_id}/")
-    print(f"Terminating instance: {instance_id}")
+    # print(f"Terminating instance: {instance_id}")
     response = http_del(url, headers=headers, json={})
     return response.json()
 
@@ -389,14 +387,15 @@ def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars(".env")):
             rented_nodes.append(
                 {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
             )
-            print(f"Rented node {offer['id']} on contract: {instance['new_contract']}")
+            # print(f"Rented node {offer['id']} on contract: {instance['new_contract']}")
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 400:
+            if e.response.status_code == 400 or e.response.status_code == 404:
                 # print the response itself
-                print(f"Error renting node: {offer['id']}, {e.response.text}")
-                print(f"Offer {offer['id']} is unavailable. Trying next offer...")
+                # print(f"Error renting node: {offer['id']}, {e.response.text}")
+                # print(f"Offer {offer['id']} is unavailable. Trying next offer...")
+                pass
             else:
-                print(f"Error renting node: {offer['id']}, {str(e)}")
+                # print(f"Error renting node: {offer['id']}, {str(e)}")
                 raise
     return rented_nodes
 
@@ -407,46 +406,6 @@ def terminate_nodes(nodes):
             destroy_instance(node["instance_id"])
         except Exception as e:
             print(f"Error terminating node: {node['instance_id']}, {str(e)}")
-
-
-def check_job_status(job_id):
-    task_keys = redis_client.keys(f"celery-task-meta-*")
-
-    status_counts = {"PENDING": 0, "STARTED": 0, "RETRY": 0, "FAILURE": 0, "SUCCESS": 0}
-
-    for key in task_keys:
-        value = redis_client.get(key)
-        if value:
-            task_meta = json.loads(value)
-            status = task_meta.get("status")
-            if status in status_counts:
-                status_counts[status] += 1
-            else:
-                print(f"Unknown status '{status}' for task key '{key.decode('utf-8')}'")
-
-    print(f"Status counts from Redis: {status_counts}")
-
-    return status_counts
-
-
-def monitor_job_status(job_id):
-    print(f"Monitoring status for job {job_id}")
-    while True:
-        status_counts = check_job_status(job_id)
-        print(f"Job {job_id} status: {status_counts}")
-
-        if status_counts["STARTED"] == 0 and status_counts["PENDING"] == 0:
-            break
-
-        time.sleep(30)  # Polling interval, adjust as needed
-
-
-def attach_to_existing_job(job_id):
-    status_counts = check_job_status(job_id)
-    if status_counts["STARTED"] > 0 or status_counts["PENDING"] > 0:
-        print(f"Attaching to existing job {job_id}...")
-        return True
-    return False
 
 
 def handle_signal(nodes):

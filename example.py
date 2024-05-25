@@ -7,20 +7,14 @@ import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 
-from distributaur.vast import (
-    attach_to_existing_job,
-    monitor_job_status,
-    rent_nodes,
-    terminate_nodes,
-    handle_signal,
-)
 from distributaur.core import (
     configure,
     execute_function,
     register_function,
     get_env_vars,
     config,
-    call_function_task,
+    attach_to_existing_job,
+    monitor_job_status,
 )
 
 

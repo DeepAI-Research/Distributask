@@ -13,10 +13,8 @@ from distributaur.core import (
     close_redis_connection,
     get_redis_connection,
     config,
-    configure,
     registered_functions,
     update_function_status,
-    get_env_vars,
 )
 
 
@@ -71,12 +69,6 @@ def test_update_function_status(mock_get_redis_connection):
 
     mock_redis_client.set.assert_called_once_with(f"task_status:{task_id}", status)
     print("Test passed")
-
-
-# Add teardown to close Redis connections
-def teardown_module(module):
-    client = get_redis_connection(config)
-    close_redis_connection(client)
 
 
 @pytest.fixture
@@ -169,3 +161,8 @@ def test_task_status_update():
         print("Task status update test passed")
     finally:
         close_redis_connection(redis_client)
+
+
+def teardown_module():
+    client = get_redis_connection(config)
+    close_redis_connection(client)
