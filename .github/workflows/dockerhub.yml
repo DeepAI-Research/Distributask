@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: index.docker.io
-  IMAGE_NAME: arfx/test-worker
+  IMAGE_NAME: arfx/distributaur-test-worker
 
 jobs:
   push_to_registry:
@@ -15,7 +15,6 @@ jobs:
     permissions:
       packages: write
       contents: read
-      attestations: write
       id-token: write
     steps:
       - name: Check out the repo
