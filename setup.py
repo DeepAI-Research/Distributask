@@ -25,7 +25,7 @@ with open(os.path.join(file_path, "requirements.txt"), "r") as fh:
 
 setup(
     name="distributaur",
-    version="0.0.1",
+    version=version,
     description="Simple task manager and job queue for distributed rendering. Built on celery and redis.",
     long_description=long_description,
     long_description_content_type="text/markdown",
