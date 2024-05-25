@@ -3,18 +3,17 @@ from celery import Celery
 import os
 import sys
 import json
-import os
 import redis
 from redis import ConnectionPool
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
-app = None
-registered_functions = {}
-pool = None
+app: Celery = None
+registered_functions: dict = {}
+pool: ConnectionPool = None
 
 
-def get_env_vars(path=".env.default"):
+def get_env_vars(path: str = ".env.default") -> dict:
     """
     Load environment variables from a specified file into a dictionary.
     If the file does not exist, this function simply returns the current environment variables.
@@ -38,14 +37,15 @@ class Config:
     """
     Configuration management class that stores settings and provides methods to update and retrieve these settings.
     """
-    def __init__(self):
+
+    def __init__(self) -> None:
         """
         Initialize the Config object by loading environment variables as initial settings.
         """
         self.settings = {}
         self.settings.update(get_env_vars())
 
-    def configure(self, **kwargs):
+    def configure(self, **kwargs) -> None:
         """
         Update the configuration settings with provided keyword arguments.
 
@@ -54,7 +54,7 @@ class Config:
         """
         self.settings.update(kwargs)
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: any = None) -> any:
         """
         Retrieve a value from the configuration settings, with an optional default if the key is not found.
 
@@ -71,7 +71,7 @@ class Config:
 config = Config()
 
 
-def get_redis_values(config):
+def get_redis_values(config: Config) -> str:
     """
     Construct a Redis URL from the configuration settings.
 
@@ -96,7 +96,7 @@ def get_redis_values(config):
     return redis_url
 
 
-def get_redis_connection(config, force_new=False):
+def get_redis_connection(config: Config, force_new: bool = False) -> redis.Redis:
     """
     Retrieve or create a new Redis connection using the connection pool.
 
@@ -114,7 +114,7 @@ def get_redis_connection(config, force_new=False):
     return redis.Redis(connection_pool=pool)
 
 
-def configure(**kwargs):
+def configure(**kwargs) -> None:
     """
     Configure the application with specified settings and initialize the Celery app.
 
@@ -136,7 +136,7 @@ configure(**env_vars)
 redis_client = get_redis_connection(config, force_new=True)
 
 
-def close_redis_connection(client):
+def close_redis_connection(client: redis.Redis) -> None:
     """
     Close a given Redis connection.
 
@@ -147,7 +147,7 @@ def close_redis_connection(client):
 
 
 @app.task(name="call_function_task")
-def call_function_task(func_name, args_json):
+def call_function_task(func_name: str, args_json: str) -> any:
     """
     Celery task to execute a registered function with provided JSON arguments.
 
@@ -161,34 +161,31 @@ def call_function_task(func_name, args_json):
     Raises:
         ValueError: If the function name is not registered.
     """
-    # print(f"Received task with function: {func_name}, and args: {args_json}")
     if func_name not in registered_functions:
-        # print("registered_functions are", registered_functions)
         raise ValueError(f"Function '{func_name}' is not registered.")
 
     func = registered_functions[func_name]
     args = json.loads(args_json)
-    # print(f"Executing task with function: {func_name}, and args: {args}")
     result = func(**args)
     update_function_status(call_function_task.request.id, "completed")
     return result
 
 
-def register_function(func):
+def register_function(func: callable) -> callable:
     """
     Decorator to register a function so that it can be invoked as a task.
 
     Args:
-        func (function): The function to register.
+        func (callable): The function to register.
 
     Returns:
-        function: The original function, now registered as a callable task.
+        callable: The original function, now registered as a callable task.
     """
     registered_functions[func.__name__] = func
     return func
 
 
-def execute_function(func_name, args):
+def execute_function(func_name: str, args: dict) -> Celery.AsyncResult:
     """
     Execute a registered function as a Celery task with provided arguments.
 
@@ -200,11 +197,10 @@ def execute_function(func_name, args):
         AsyncResult: An object representing the asynchronous result of the task.
     """
     args_json = json.dumps(args)
-    # print(f"Dispatching task with function: {func_name}, and args: {args_json}")
     return call_function_task.delay(func_name, args_json)
 
 
-def update_function_status(task_id, status):
+def update_function_status(task_id: str, status: str) -> None:
     """
     Update the status of a function task in Redis.
 
@@ -216,7 +212,7 @@ def update_function_status(task_id, status):
     redis_client.set(f"task_status:{task_id}", status)
 
 
-def check_job_status(job_id):
+def check_job_status(job_id: str) -> dict:
     """
     Check the status counts of tasks for a job in Redis.
 
@@ -243,25 +239,21 @@ def check_job_status(job_id):
     return status_counts
 
 
-def monitor_job_status(job_id):
+def monitor_job_status(job_id: str) -> None:
     """
     Continuously monitor the status of a job until there are no more active or pending tasks.
 
     Args:
         job_id (str): The ID of the job to monitor.
     """
-    # print(f"Monitoring status for job {job_id}")
     while True:
         status_counts = check_job_status(job_id)
-        # print(f"Job {job_id} status: {status_counts}")
-
         if status_counts["STARTED"] == 0 and status_counts["PENDING"] == 0:
             break
-
         time.sleep(30)  # Polling interval, adjust as needed
 
 
-def attach_to_existing_job(job_id):
+def attach_to_existing_job(job_id: str) -> bool:
     """
     Check if a job has any active or pending tasks and determine if it's possible to attach to it.
 
@@ -272,6 +264,4 @@ def attach_to_existing_job(job_id):
         bool: True if the job has active or pending tasks, otherwise False.
     """
     status_counts = check_job_status(job_id)
-    if status_counts["STARTED"] > 0 or status_counts["PENDING"] > 0:
-        return True
-    return False
+    return status_counts["STARTED"] > 0 or status_counts["PENDING"] > 0

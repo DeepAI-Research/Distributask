@@ -2,56 +2,29 @@ import os
 import sys
 import requests
 import json
-from typing import Dict
+from typing import Dict, List, Optional
 import re
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
 from distributaur.core import get_env_vars, redis_client, config
 
-server_url_default = "https://console.vast.ai"
-headers = {}
+server_url_default: str = "https://console.vast.ai"
+headers: Dict[str, str] = {}
 
 
-def dump_redis_values():
-    """
-    Prints all keys and their values from the Redis database. It supports multiple data types:
-    strings, lists, sets, hashes, and sorted sets. If the data type is unsupported, it prints a warning.
-    """
-    keys = redis_client.keys("*")
-    for key in keys:
-        key_type = redis_client.type(key).decode("utf-8")
-        if key_type == "string":
-            value = redis_client.get(key).decode("utf-8")
-            print(f"Key: {key.decode('utf-8')}, Value: {value}")
-        elif key_type == "list":
-            value = redis_client.lrange(key, 0, -1)
-            print(f"Key: {key.decode('utf-8')}, Value: {value}")
-        elif key_type == "set":
-            value = redis_client.smembers(key)
-            print(f"Key: {key.decode('utf-8')}, Value: {value}")
-        elif key_type == "hash":
-            value = redis_client.hgetall(key)
-            print(f"Key: {key.decode('utf-8')}, Value: {value}")
-        elif key_type == "zset":
-            value = redis_client.zrange(key, 0, -1, withscores=True)
-            print(f"Key: {key.decode('utf-8')}, Value: {value}")
-        else:
-            print(f"Key: {key.decode('utf-8')} has unsupported type: {key_type}")
-
-
-def http_get(url, headers):
+def http_get(url: str, headers: Dict[str, str]) -> Dict:
     """
     Sends a GET request to the specified URL with the provided headers.
     Returns the JSON response if successful, and prints and raises any errors encountered during the request.
-    
+
     Args:
         url (str): The URL to send the GET request to.
-        headers (dict): The headers to include in the request.
-        
+        headers (Dict[str, str]): The headers to include in the request.
+
     Returns:
-        dict: The parsed JSON response from the server.
-        
+        Dict: The parsed JSON response from the server.
+
     Raises:
         RequestException: If there is an error during the request.
     """
@@ -67,15 +40,19 @@ def http_get(url, headers):
         raise
 
 
-def apiurl(subpath: str, query_args: Dict = None, api_key: str = None) -> str:
+def apiurl(
+    subpath: str,
+    query_args: Optional[Dict[str, any]] = None,
+    api_key: Optional[str] = None,
+) -> str:
     """
     Constructs a full API URL from a subpath, optional query arguments, and an optional API key.
-    
+
     Args:
         subpath (str): The API endpoint subpath.
-        query_args (dict, optional): Query parameters to include in the URL.
-        api_key (str, optional): API key to include as a query parameter.
-        
+        query_args (Optional[Dict[str, any]], optional): Query parameters to include in the URL.
+        api_key (Optional[str], optional): API key to include as a query parameter.
+
     Returns:
         str: The fully constructed URL.
     """
@@ -84,65 +61,70 @@ def apiurl(subpath: str, query_args: Dict = None, api_key: str = None) -> str:
     if api_key is not None:
         query_args["api_key"] = api_key
     query_json = "&".join(
-        "{x}={y}".format(x=x, y=requests.utils.quote(json.dumps(y)))
-        for x, y in query_args.items()
+        f"{x}={requests.utils.quote(json.dumps(y))}" for x, y in query_args.items()
     )
     return server_url_default + "/api/v0" + subpath + "?" + query_json
 
 
-def http_put(req_url, headers, json):
+def http_put(
+    req_url: str, headers: Dict[str, str], json_data: Dict
+) -> requests.Response:
     """
     Sends a PUT request to the specified URL with the provided headers and JSON payload.
     Returns the response if the request is successful.
-    
+
     Args:
         req_url (str): The URL to send the PUT request to.
-        headers (dict): The headers to include in the request.
-        json (dict): The JSON payload for the request.
-        
+        headers (Dict[str, str]): The headers to include in the request.
+        json_data (Dict): The JSON payload for the request.
+
     Returns:
-        Response: The response object from the request.
+        requests.Response: The response object from the request.
     """
-    response = requests.put(req_url, headers=headers, json=json)
+    response = requests.put(req_url, headers=headers, json=json_data)
     response.raise_for_status()
     return response
 
 
-def http_del(req_url, headers, json={}):
+def http_del(
+    req_url: str, headers: Dict[str, str], json_data: Dict = {}
+) -> requests.Response:
     """
     Sends a DELETE request to the specified URL with the provided headers and optional JSON payload.
     Returns the response if the request is successful.
-    
+
     Args:
         req_url (str): The URL to send the DELETE request to.
-        headers (dict): The headers to include in the request.
-        json (dict, optional): The JSON payload for the request.
-        
+        headers (Dict[str, str]): The headers to include in the request.
+        json_data (Dict, optional): The JSON payload for the request.
+
     Returns:
-        Response: The response object from the request.
+        requests.Response: The response object from the request.
     """
-    response = requests.delete(req_url, headers=headers, json=json)
+    response = requests.delete(req_url, headers=headers, json=json_data)
     response.raise_for_status()
     return response
 
 
-def http_post(req_url, headers, json={}):
+def http_post(
+    req_url: str, headers: Dict[str, str], json_data: Dict = {}
+) -> requests.Response:
     """
     Sends a POST request to the specified URL with the provided headers and optional JSON payload.
     Attempts to handle any exceptions that occur and prints detailed error responses.
-    
+
     Args:
         req_url (str): The URL to send the POST request to.
-        headers (dict): The headers to include in the request.
-        json (dict, optional): The JSON payload for the request.
-        
+        headers (Dict[str, str]): The headers to include in the request.
+        json_data (Dict, optional): The JSON payload for the request.
+
     Returns:
-        Response: The response object from the request.
-        
+        requests.Response: The response object from the request.
+
     Raises:
         RequestException: If there is an error with the request.
     """
-    response = requests.post(req_url, headers=headers, json=json)
+    response = requests.post(req_url, headers=headers, json=json_data)
     try:
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
@@ -152,28 +134,32 @@ def http_post(req_url, headers, json={}):
 
 
 def parse_query(
-    query_str: str, res: Dict = None, fields={}, field_alias={}, field_multiplier={}
+    query_str: str,
+    res: Optional[Dict[str, Dict[str, any]]] = None,
+    fields: Dict[str, any] = {},
+    field_alias: Dict[str, str] = {},
+    field_multiplier: Dict[str, float] = {},
 ) -> Dict:
     """
     Parses a string query into a structured dictionary using specified fields, aliases, and multipliers.
     Supports various comparison operators and complex queries.
-    
+
     Args:
         query_str (str): The query string to parse.
-        res (dict, optional): The dictionary to populate with the parsed query.
-        fields (dict, optional): Recognized fields for validation.
-        field_alias (dict, optional): Aliases for fields to allow flexible query syntax.
-        field_multiplier (dict, optional): Multipliers for certain fields for unit conversion.
-        
+        res (Optional[Dict[str, Dict[str, any]]], optional): The dictionary to populate with the parsed query.
+        fields (Dict[str, any], optional): Recognized fields for validation.
+        field_alias (Dict[str, str], optional): Aliases for fields to allow flexible query syntax.
+        field_multiplier (Dict[str, float], optional): Multipliers for certain fields for unit conversion.
+
     Returns:
-        dict: A dictionary representation of the query.
-        
+        Dict: A dictionary representation of the query.
+
     Raises:
         ValueError: If there are syntax errors in the query.
     """
     if res is None:
         res = {}
-    if type(query_str) == list:
+    if isinstance(query_str, list):
         query_str = " ".join(query_str)
     query_str = query_str.strip()
     pattern = r"([a-zA-Z0-9_]+)( *[=><!]+| +(?:[lg]te?|nin|neq|eq|not ?eq|not ?in|in) )?( *)(\[[^\]]+\]|\"[^\"]+\"|[^ ]+)?( *)"
@@ -272,7 +258,7 @@ def parse_query(
     return res
 
 
-offers_fields = {
+offers_fields: set = {
     "bw_nvlink",
     "compute_cap",
     "cpu_cores",
@@ -310,7 +296,7 @@ offers_fields = {
     "verified",
 }
 
-offers_alias = {
+offers_alias: dict = {
     "cuda_vers": "cuda_max_good",
     "reliability": "reliability2",
     "dlperf_usd": "dlperf_per_dphtotal",
@@ -318,31 +304,49 @@ offers_alias = {
     "flops_usd": "flops_per_dphtotal",
 }
 
-offers_mult = {"cpu_ram": 1000, "duration": 24 * 60 * 60}
+offers_mult: dict = {"cpu_ram": 1000, "duration": 24 * 60 * 60}
 
 
-def get_runtype(args):
+def get_runtype(args: dict) -> str:
+    """
+    Determine the runtime type based on the input arguments, prioritizing Jupyter configurations.
+
+    Args:
+        args (dict): The command-line arguments provided to the script.
+
+    Returns:
+        str: A string representing the determined runtime type.
+    """
     runtype = "ssh"
-    if args.jupyter_dir or args.jupyter_lab:
-        args.jupyter = True
-    if args.jupyter and runtype == "args":
+    if args.get("jupyter_dir") or args.get("jupyter_lab"):
+        args["jupyter"] = True
+    if args.get("jupyter") and runtype == "args":
         print(
             "Error: Can't use --jupyter and --args together. Try --onstart or --onstart-cmd instead of --args.",
             file=sys.stderr,
         )
-        return 1
-    if args.jupyter:
+        return "1"
+    if args.get("jupyter"):
         runtype = (
             "jupyter_direc ssh_direc ssh_proxy"
-            if args.direct
+            if args.get("direct")
             else "jupyter_proxy ssh_proxy"
         )
-    if args.ssh:
-        runtype = "ssh_direc ssh_proxy" if args.direct else "ssh_proxy"
+    if args.get("ssh"):
+        runtype = "ssh_direc ssh_proxy" if args.get("direct") else "ssh_proxy"
     return runtype
 
 
-def parse_env(envs):
+def parse_env(envs: Optional[str]) -> Dict[str, str]:
+    """
+    Parse environment variable settings from a command-line argument string.
+
+    Args:
+        envs (Optional[str]): A string containing the environment variable settings.
+
+    Returns:
+        Dict[str, str]: A dictionary of environment variable keys and values.
+    """
     result = {}
     if envs is None:
         return result
@@ -357,7 +361,7 @@ def parse_env(envs):
         else:
             if prev == "-p":
                 if set(e).issubset(set("0123456789:tcp/udp")):
-                    result["-p " + e] = "1"
+                    result[prev + " " + e] = "1"
                 else:
                     return result
             elif prev == "-e":
@@ -376,24 +380,22 @@ def parse_env(envs):
 import urllib.parse
 
 
-def search_offers(max_price):
+def search_offers(max_price: float) -> List[Dict]:
     """
     Searches for offers below a specified maximum price using an API.
     Constructs the search URL and handles the request, returning a list of offers if successful.
-    
+
     Args:
         max_price (float): The maximum price to filter the offers.
-        
+
     Returns:
-        list: A list of offers that match the criteria.
-        
+        List[Dict]: A list of offers that match the criteria.
+
     Raises:
         RequestException: If there is an error during the request.
     """
     api_key = config.get("VAST_API_KEY")
     base_url = "https://console.vast.ai/api/v0/bundles/"
-    print("api_key")
-    print(api_key)
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
@@ -406,13 +408,11 @@ def search_offers(max_price):
         + '},"sort_option":{"0":["dph_total","asc"],"1":["total_flops","asc"]}}'
     )
 
-    print("url", url)
-
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        json = response.json()
-        return json["offers"]
+        json_response = response.json()
+        return json_response["offers"]
 
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
@@ -420,19 +420,19 @@ def search_offers(max_price):
         raise
 
 
-def create_instance(offer_id, image, env):
+def create_instance(offer_id: str, image: str, env: Dict[str, str]) -> Dict:
     """
     Creates a virtual machine instance using the specified offer ID, image, and environment settings.
     Prepares the environment and handles the API call for instance creation.
-    
+
     Args:
         offer_id (str): The ID of the offer to use for creating the instance.
         image (str): The image to use for the instance.
-        env (dict): The environment settings necessary for the instance.
-        
+        env (Dict[str, str]): The environment settings necessary for the instance.
+
     Returns:
-        dict: A dictionary containing details of the created instance.
-        
+        Dict: A dictionary containing details of the created instance.
+
     Raises:
         ValueError: If the environment is not properly configured or missing required keys.
     """
@@ -442,7 +442,7 @@ def create_instance(offer_id, image, env):
     if not isinstance(env, dict):
         raise ValueError("env must be a dictionary")
 
-    if not "VAST_API_KEY" in env:
+    if "VAST_API_KEY" not in env:
         # warn about missing vast api key
         print("Warning: Missing Vast API key")
 
@@ -462,13 +462,13 @@ def create_instance(offer_id, image, env):
         "template_hash_id": "250671155ccbc28d0609af524b75a80e",
         "template_id": 108305,
     }
-    url = apiurl(f"/asks/{offer_id}/")
+    url = apiurl(f"/asks/{offer_id}/", api_key=env.get("VAST_API_KEY"))
     response = http_put(
         url,
         headers={
             "Authorization": f"Bearer {env['VAST_API_KEY']}",
         },
-        json=json_blob,
+        json_data=json_blob,
     )
 
     # check on response
@@ -479,46 +479,53 @@ def create_instance(offer_id, image, env):
     return response.json()
 
 
-def destroy_instance(instance_id):
+def destroy_instance(instance_id: str) -> Dict:
     """
     Destroys a virtual machine instance specified by its ID.
     Handles the API call to terminate the instance.
-    
+
     Args:
         instance_id (str): The ID of the instance to terminate.
-        
+
     Returns:
-        dict: A dictionary containing the server response after attempting to terminate the instance.
+        Dict: A dictionary containing the server response after attempting to terminate the instance.
     """
     api_key = config.get("VAST_API_KEY")
     headers = {"Authorization": f"Bearer {api_key}"}
-    url = apiurl(f"/instances/{instance_id}/")
-    # print(f"Terminating instance: {instance_id}")
-    response = http_del(url, headers=headers, json={})
+    url = apiurl(f"/instances/{instance_id}/", api_key=api_key)
+    response = http_del(url, headers=headers, json_data={})
     return response.json()
 
 
-def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars(".env")):
+def rent_nodes(
+    max_price: float,
+    max_nodes: int,
+    image: str,
+    api_key: str,
+    env: Optional[Dict[str, str]] = None,
+) -> List[Dict]:
     """
     Searches for and rents nodes based on specified criteria such as maximum price and node count.
     Handles node creation for each valid offer and returns a list of rented nodes with their details.
-    
+
     Args:
         max_price (float): The maximum price per hour for the nodes.
         max_nodes (int): The maximum number of nodes to rent.
         image (str): The image identifier to be used for the nodes.
         api_key (str): The API key required for authentication with the service.
-        env (dict, optional): The environment variables used for additional configuration.
-        
+        env (Optional[Dict[str, str]], optional): The environment variables used for additional configuration.
+
     Returns:
-        list: A list of dictionaries, each containing the details of a rented node including offer ID and instance ID.
-        
+        List[Dict]: A list of dictionaries, each containing the details of a rented node including offer ID and instance ID.
+
     Raises:
         HTTPError: If there is an error during the renting process due to an HTTP issue.
     """
+    if env is None:
+        env = get_env_vars(".env")
     api_key = api_key or env.get("VAST_API_KEY")
     offers = search_offers(max_price)
-    rented_nodes = []
+    rented_nodes: List[Dict] = []
     for offer in offers:
         if len(rented_nodes) >= max_nodes:
             break
@@ -527,27 +534,22 @@ def rent_nodes(max_price, max_nodes, image, api_key, env=get_env_vars(".env")):
             rented_nodes.append(
                 {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
             )
-            # print(f"Rented node {offer['id']} on contract: {instance['new_contract']}")
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 400 or e.response.status_code == 404:
-                # print the response itself
-                # print(f"Error renting node: {offer['id']}, {e.response.text}")
-                # print(f"Offer {offer['id']} is unavailable. Trying next offer...")
+            if e.response.status_code in [400, 404]:
                 pass
             else:
-                # print(f"Error renting node: {offer['id']}, {str(e)}")
                 raise
     return rented_nodes
 
 
-def terminate_nodes(nodes):
+def terminate_nodes(nodes: List[Dict]) -> None:
     """
     Terminates a list of nodes by sending a termination request for each node's instance ID.
     This function ensures that all specified nodes are properly shut down.
-    
+
     Args:
-        nodes (list of dicts): A list of node dictionaries, each containing at least an 'instance_id' key.
-        
+        nodes (List[Dict]): A list of node dictionaries, each containing at least an 'instance_id' key.
+
     Raises:
         Exception: If an error occurs during the termination of any node.
     """
@@ -558,16 +560,16 @@ def terminate_nodes(nodes):
             print(f"Error terminating node: {node['instance_id']}, {str(e)}")
 
 
-def handle_signal(nodes):
+def handle_signal(nodes: List[Dict]) -> callable:
     """
     Creates and returns a signal handler for gracefully shutting down nodes upon receiving a SIGINT (Ctrl-C).
     This function is particularly useful for ensuring a clean and controlled shutdown of resources.
-    
+
     Args:
-        nodes (list): A list of node dictionaries that need to be terminated upon signal reception.
-        
+        nodes (List[Dict]): A list of node dictionaries that need to be terminated upon signal reception.
+
     Returns:
-        function: A signal handler function that can be set as the handler for SIGINT.
+        callable: A signal handler function that can be set as the handler for SIGINT.
     """
     from distributaur.vast import terminate_nodes
 
