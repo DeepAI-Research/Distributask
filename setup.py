@@ -1,5 +1,4 @@
 from setuptools import setup
-import sys
 import os
 
 # get the cwd where the setup.py file is located
