@@ -16,8 +16,6 @@ from distributaur.core import (
 from distributaur.vast import rent_nodes, terminate_nodes, handle_signal, headers
 
 env_vars = get_env_vars(".env")
-print("env_vars")
-print(env_vars)
 configure(**env_vars)
 
 
