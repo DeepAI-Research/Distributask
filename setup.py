@@ -14,7 +14,6 @@ with open(os.path.join(file_path, "README.md"), "r") as fh:
 
 with open(os.path.join(file_path, "version.txt"), "r") as fh:
     version_content = fh.read()
-    print("Content from version.txt:", version_content)
     version = version_content.split("\n")[0].strip()
 
 with open(os.path.join(file_path, "requirements.txt"), "r") as fh:
@@ -23,8 +22,6 @@ with open(os.path.join(file_path, "requirements.txt"), "r") as fh:
     install_requires = [
         line.split("=")[0].split(">")[0].split("<")[0] for line in install_requires
     ]
-
-print("version:", version)
 
 setup(
     name="distributaur",
