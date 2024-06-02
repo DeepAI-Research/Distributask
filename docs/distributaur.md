@@ -1,8 +1,8 @@
 # Core
 
-The core module contains the core functionality of Distributaur, including the task queue, task execution, and task monitoring.
+The distributaur module contains the core functionality of Distributaur, including the task queue, task execution, and task monitoring.
 
-This guide provides an overview of the core module in the Distributaur package, which handles configuration management, Redis connection, and task execution using Celery.
+This guide provides an overview of the distributaur module in the Distributaur package, which handles configuration management, Redis connection, and task execution using Celery.
 
 ## Configuration Management
 
@@ -24,17 +24,13 @@ The `Config` class is responsible for managing configuration settings. It has th
 
 The module provides functions to construct Redis URLs, retrieve or create Redis connections using a connection pool, and close Redis connections.
 
-### `get_redis_values(config)`
+### `get_redis_url(config)`
 
 This function constructs a Redis URL from the configuration settings. It raises a `ValueError` if any required Redis connection parameter is missing.
 
 ### `get_redis_connection(config, force_new=False)`
 
 This function retrieves or creates a new Redis connection using the connection pool. It takes a `Config` object containing Redis connection details and an optional `force_new` parameter to force the creation of a new connection.
-
-### `close_redis_connection(client)`
-
-This function closes a given Redis connection.
 
 ## Celery Task Execution
 
@@ -78,7 +74,7 @@ This function checks if a job has any active or pending tasks and determines if 
 
 This guide provides an overview of the core module and explains the purpose and usage of each function and class. It can be used as a reference when working with the Distributaur package.
 
-::: distributaur.core
+::: distributaur.distributaur
     :docstring:
     :members:
     :undoc-members:

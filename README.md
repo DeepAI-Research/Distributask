@@ -64,7 +64,7 @@ To start processing tasks, you need to run a worker. You can start a worker usin
 
 ```bash
 sh scripts/kill_redis_connections.sh  # Optional: to clear previous Redis connections
-celery -A distributaur.core worker --loglevel=info
+celery -A distributaur.distributaur worker --loglevel=info
 ```
 
 ### Running an Example Task

@@ -1,0 +1,484 @@
+import os
+import sys
+import json
+import time
+
+from celery import Celery
+from redis import ConnectionPool, Redis
+from omegaconf import OmegaConf
+from dotenv import load_dotenv
+from celery.result import AsyncResult
+from huggingface_hub import HfApi, Repository
+from requests.exceptions import HTTPError
+from celery.utils.log import get_task_logger
+
+import requests
+from typing import Dict, List
+import atexit
+
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
+
+
+class Distributaur:
+    """
+    Configuration management class that stores settings and provides methods to update and retrieve these settings.
+    """
+
+    app: Celery = None
+    redis_client: Redis = None
+    registered_functions: dict = {}
+    pool: ConnectionPool = None
+
+    def __init__(self, config_path="config.json", env_path=".env") -> None:
+        """
+        Initialize the Config object by loading configuration from a JSON file using omegaconf
+        and overriding with environment variables from a .env file.
+        """
+        # Load environment variables from .env file
+        load_dotenv(env_path)
+
+        # check if config_path exists
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f"Configuration file not found at {config_path}")
+
+        # Load configuration from JSON file
+        self.settings = OmegaConf.load(config_path)
+
+        # Override configuration with environment variables
+        self.settings = OmegaConf.merge(self.settings, OmegaConf.create(os.environ))
+
+        redis_url = self.get_redis_url()
+        self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
+        self.app.task_acks_late = True
+        self.app.worker_prefetch_multiplier = 1
+        self.call_function_task = self.app.task(bind=True, name="call_function_task")(
+            self.call_function_task
+        )
+
+    def log(self, message: str, level: str = "info") -> None:
+        logger = get_task_logger(__name__)
+        getattr(logger, level)(message)
+
+    def get_redis_url(self) -> str:
+        """
+        Construct a Redis URL from the configuration settings.
+
+        Returns:
+            str: A Redis URL string built from the configuration settings.
+
+        Raises:
+            ValueError: If any required Redis connection parameter is missing.
+        """
+        redis_config = self.settings.redis
+        host = redis_config.host
+        password = redis_config.password
+        port = redis_config.port
+        username = redis_config.username
+
+        if None in [host, password, port, username]:
+            raise ValueError("Missing required Redis configuration values")
+
+        redis_url = f"redis://{username}:{password}@{host}:{port}"
+        return redis_url
+
+    def get_redis_connection(self, force_new: bool = False) -> Redis:
+        """
+        Retrieve or create a new Redis connection using the connection pool.
+
+        Args:
+            config (Config): The configuration object containing Redis connection details.
+            force_new (bool): Force the creation of a new connection if set to True.
+
+        Returns:
+            Redis: A Redis connection object.
+        """
+        global pool
+        if pool is None or force_new:
+            redis_url = self.get_redis_url()
+            pool = ConnectionPool.from_url(redis_url)
+        return self.redis.Redis(connection_pool=pool)
+
+    def get_env(self, key: str, default: any = None) -> any:
+        """
+        Retrieve a value from the configuration settings, with an optional default if the key is not found.
+
+        Args:
+            key (str): The key to look for in the settings.
+            default (any, optional): The default value to return if the key is not found.
+
+        Returns:
+            any: The value from the settings if the key exists, otherwise the default value.
+        """
+        return self.settings.get(key, default)
+
+    def call_function_task(self, func_name: str, args_json: str, job_id: str) -> any:
+        """
+        Celery task to execute a registered function with provided JSON arguments.
+
+        Args:
+            func_name (str): The name of the registered function to execute.
+            args_json (str): JSON string representation of the arguments for the function.
+
+        Returns:
+            any: The result of the function execution.
+
+        Raises:
+            ValueError: If the function name is not registered.
+        """
+        if func_name not in self.registered_functions:
+            raise ValueError(f"Function '{func_name}' is not registered.")
+
+        func = self.registered_functions[func_name]
+        args = json.loads(args_json)
+        result = func(**args)
+        self.update_function_status(
+            self.call_function_task.request.id, "completed", job_id
+        )
+
+        return result
+
+    def register_function(self, func: callable) -> callable:
+        """
+        Decorator to register a function so that it can be invoked as a task.
+
+        Args:
+            func (callable): The function to register.
+
+        Returns:
+            callable: The original function, now registered as a callable task.
+        """
+        self.registered_functions[func.__name__] = func
+        return func
+
+    def execute_function(self, func_name: str, args: dict) -> Celery.AsyncResult:
+        """
+        Execute a registered function as a Celery task with provided arguments.
+
+        Args:
+            func_name (str): The name of the function to execute.
+            args (dict): Arguments to pass to the function.
+
+        Returns:
+            AsyncResult: An object representing the asynchronous result of the task.
+        """
+        args_json = json.dumps(args)
+        return self.call_function_task.delay(func_name, args_json)
+
+    def update_function_status(self, task_id: str, status: str, job_id: str) -> None:
+        """
+        Update the status of a function task in Redis.
+
+        Args:
+            task_id (str): The ID of the task.
+            status (str): The new status to set.
+        """
+        redis_client = self.get_redis_connection()
+        redis_client.set(f"task_status:{job_id}:{task_id}", status)
+
+    def check_job_status(self, job_id: str) -> dict:
+        """
+        Check the status counts of tasks for a job in Redis.
+
+        Args:
+            job_id (str): The ID of the job whose tasks to check.
+
+        Returns:
+            dict: A dictionary with the counts of each status type for the job's tasks.
+        """
+        redis_client = self.get_redis_connection()
+        task_keys = redis_client.keys(f"celery-task-meta-{job_id}-*")
+
+        status_counts = {
+            "PENDING": 0,
+            "STARTED": 0,
+            "RETRY": 0,
+            "FAILURE": 0,
+            "SUCCESS": 0,
+        }
+
+        for key in task_keys:
+            value = redis_client.get(key)
+            if value:
+                task_meta = json.loads(value)
+                status = task_meta.get("status")
+                if status in status_counts:
+                    status_counts[status] += 1
+                else:
+                    print(
+                        f"Unknown status '{status}' for task key '{key.decode('utf-8')}'"
+                    )
+
+        return status_counts
+
+    def monitor_job_status(job_id: str, interval: int = 5) -> None:
+        """
+        Monitor the status of a job until it completes or fails.
+
+        Args:
+            job_id (str): The ID of the job to monitor.
+            interval (int): The interval (in seconds) at which to check the job status.
+        """
+        while True:
+            job_result = AsyncResult(job_id)
+            if job_result.ready():
+                if job_result.successful():
+                    print(f"Job {job_id} completed successfully.")
+                else:
+                    print(f"Job {job_id} failed.")
+                    exception = job_result.result
+                    print(f"Exception: {exception}")
+                break
+            time.sleep(interval)
+
+    def retry_failed_tasks(self, job_id: str) -> None:
+        redis_client = self.get_redis_connection()
+        task_keys = redis_client.keys(f"celery-task-meta-{job_id}-*")
+
+        for key in task_keys:
+            value = redis_client.get(key)
+            if value:
+                task_meta = json.loads(value)
+                if task_meta.get("status") == "FAILURE":
+                    task_name = task_meta.get("name")
+                    task_args = task_meta.get("args")
+                    if task_name and task_args:
+                        func_name = task_name.split(".")[-1]
+                        args_json = task_args[1]
+                        args = json.loads(args_json)
+                        self.execute_function(func_name, args)
+                        print(f"Retried task: {func_name}")
+                        redis_client.delete(key)
+
+    def attach_to_existing_job(self, job_id: str) -> bool:
+        """
+        Check if a job has any active or pending tasks and determine if it's possible to attach to it.
+
+        Args:
+            job_id (str): The ID of the job to check.
+
+        Returns:
+            bool: True if the job has active or pending tasks, otherwise False.
+        """
+        status_counts = self.check_job_status(job_id)
+        return status_counts["STARTED"] > 0 or status_counts["PENDING"] > 0
+
+    def initialize_dataset(self, **kwargs) -> None:
+        """Initialize a Hugging Face repository if it doesn't exist."""
+        repo_type = "dataset"
+        repo_id = self.settings.get("HF_REPO_ID")
+        hf_token = self.settings.get("HF_TOKEN")
+        api = HfApi(token=hf_token)
+
+        try:
+            repo_info = api.repo_info(repo_id=repo_id, repo_type=repo_type)
+            print(f"Repository {repo_id} already exists.")
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                print(
+                    f"Repository {repo_id} does not exist. Creating a new repository."
+                )
+                api.create_repo(
+                    repo_id=repo_id, token=hf_token, repo_type=repo_type, **kwargs
+                )
+            else:
+                raise e
+
+        # Create config.json file
+        config = {
+            "data_loader_name": "custom",
+            "data_loader_kwargs": {
+                "path": repo_id,
+                "format": "files",
+                "fields": ["file_path", "text"],
+            },
+        }
+
+        with Repository(
+            local_dir=".",
+            clone_from=repo_id,
+            repo_type=repo_type,
+            use_auth_token=hf_token,
+        ).commit(commit_message="Add config.json"):
+            with open("config.json", "w") as f:
+                json.dump(config, f, indent=2)
+
+        print(f"Initialized repository {repo_id} with config.json.")
+
+    def upload_directory(self, output_dir: str, repo_dir: str) -> None:
+        """Upload the rendered outputs to a Huggingface repository."""
+        hf_token = self.settings.get("HF_TOKEN")
+        repo_id = self.settings.get("HF_REPO_ID")
+
+        self.initialize_dataset()
+
+        api = HfApi(token=hf_token)
+
+        for root, dirs, files in os.walk(output_dir):
+            for file in files:
+                local_path = os.path.join(root, file)
+                path_in_repo = os.path.join(repo_dir, file) if repo_dir else file
+
+                try:
+                    print(
+                        f"Uploading {local_path} to Hugging Face repo {repo_id} at {path_in_repo}"
+                    )
+                    api.upload_file(
+                        path_or_fileobj=local_path,
+                        path_in_repo=path_in_repo,
+                        repo_id=repo_id,
+                        token=hf_token,
+                        repo_type="dataset",
+                    )
+                    print(
+                        f"Uploaded {local_path} to Hugging Face repo {repo_id} at {path_in_repo}"
+                    )
+                except Exception as e:
+                    print(
+                        f"Failed to upload {local_path} to Hugging Face repo {repo_id} at {path_in_repo}: {e}"
+                    )
+
+    def delete_file(
+        self, repo_id: str, path_in_repo: str, repo_type: str = "dataset"
+    ) -> None:
+        """Delete a file from a Hugging Face repository."""
+        hf_token = self.settings.get("HF_TOKEN")
+        api = HfApi(token=hf_token)
+
+        try:
+            api.delete_file(
+                repo_id=repo_id,
+                path_in_repo=path_in_repo,
+                repo_type=repo_type,
+                token=hf_token,
+            )
+            print(f"Deleted {path_in_repo} from Hugging Face repo {repo_id}")
+        except Exception as e:
+            print(
+                f"Failed to delete {path_in_repo} from Hugging Face repo {repo_id}: {e}"
+            )
+
+    def file_exists(
+        self, repo_id: str, path_in_repo: str, repo_type: str = "dataset"
+    ) -> bool:
+        """Check if a file exists in a Hugging Face repository."""
+        hf_token = self.settings.get("HF_TOKEN")
+        api = HfApi(token=hf_token)
+
+        try:
+            repo_files = api.list_repo_files(
+                repo_id=repo_id, repo_type=repo_type, token=hf_token
+            )
+            return path_in_repo in repo_files
+        except Exception as e:
+            print(
+                f"Failed to check if {path_in_repo} exists in Hugging Face repo {repo_id}: {e}"
+            )
+            return False
+
+    def list_files(self, repo_id: str, repo_type: str = "dataset") -> list:
+        """Get a list of files from a Hugging Face repository."""
+        hf_token = self.settings.get("HF_TOKEN")
+        api = HfApi(token=hf_token)
+
+        try:
+            repo_files = api.list_repo_files(
+                repo_id=repo_id, repo_type=repo_type, token=hf_token
+            )
+            return repo_files
+        except Exception as e:
+            print(
+                f"Failed to get the list of files from Hugging Face repo {repo_id}: {e}"
+            )
+            return []
+
+    def search_offers(self, max_price: float) -> List[Dict]:
+        api_key = self.get_env("VAST_API_KEY")
+        base_url = "https://console.vast.ai/api/v0/bundles/"
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        }
+        url = (
+            base_url
+            + '?q={"gpu_ram":">=4","rentable":{"eq":true},"dph_total":{"lte":'
+            + str(max_price)
+            + '},"sort_option":{"0":["dph_total","asc"],"1":["total_flops","asc"]}}'
+        )
+
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            json_response = response.json()
+            return json_response["offers"]
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error: {e}")
+            print(f"Response: {response.text if response else 'No response'}")
+            raise
+
+    def create_instance(self, offer_id: str, image: str) -> Dict:
+        if self.get_env("VAST_API_KEY") is None:
+            # warn about missing vast api key
+            print("Warning: Missing Vast API key")
+
+        json_blob = {
+            "client_id": "me",
+            "image": image,
+            "env": "",
+            "disk": 16,  # Set a non-zero value for disk
+            "onstart": f"export PATH=$PATH:/ &&  cd ../ && REDIS_HOST={self.get_env('REDIS_HOST')} REDIS_PORT={self.get_env('REDIS_PORT')} REDIS_USER={self.get_env('REDIS_USER')} REDIS_PASSWORD={self.get_env('REDIS_PASSWORD')} HF_TOKEN={self.get_env('HF_TOKEN')} HF_REPO_ID={self.get_env('HF_REPO_ID')} HF_PATH={self.get_env('HF_PATH')} VAST_API_KEY={self.get_env('VAST_API_KEY')} celery -A simian.worker worker --loglevel=info",
+            "runtype": "ssh ssh_proxy",
+            "image_login": None,
+            "python_utf8": False,
+            "lang_utf8": False,
+            "use_jupyter_lab": False,
+            "jupyter_dir": None,
+            "create_from": "",
+            "template_hash_id": "250671155ccbc28d0609af524b75a80e",
+            "template_id": 108305,
+        }
+        url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={self.get_env('VAST_API_KEY')}"
+        headers = {"Authorization": f"Bearer {self.get_env('VAST_API_KEY')}"}
+        response = requests.put(url, headers=headers, json=json_blob)
+
+        if response.status_code != 200:
+            print(f"Failed to create instance: {response.text}")
+            raise Exception(f"Failed to create instance: {response.text}")
+
+        return response.json()
+
+    def destroy_instance(self, instance_id: str) -> Dict:
+        api_key = self.get_env("VAST_API_KEY")
+        headers = {"Authorization": f"Bearer {api_key}"}
+        url = (
+            f"https://console.vast.ai/api/v0/instances/{instance_id}/?api_key={api_key}"
+        )
+        response = requests.delete(url, headers=headers)
+        return response.json()
+
+    def rent_nodes(self, max_price: float, max_nodes: int, image: str) -> List[Dict]:
+        offers = self.search_offers(max_price)
+        rented_nodes: List[Dict] = []
+        for offer in offers:
+            if len(rented_nodes) >= max_nodes:
+                break
+            try:
+                instance = self.create_instance(offer["id"], image)
+                rented_nodes.append(
+                    {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
+                )
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code in [400, 404]:
+                    pass
+                else:
+                    raise
+        atexit.register(self.terminate_nodes, rented_nodes)
+        return rented_nodes
+
+    def terminate_nodes(self, nodes: List[Dict]) -> None:
+        for node in nodes:
+            try:
+                self.destroy_instance(node["instance_id"])
+            except Exception as e:
+                print(f"Error terminating node: {node['instance_id']}, {str(e)}")

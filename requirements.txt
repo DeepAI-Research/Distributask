@@ -1,13 +1,8 @@
 requests
-pandas
-tqdm
 fsspec
-argparse
-numpy
-black
 celery
-scipy
 redis
-boto3
-botocore
+flower
 huggingface_hub
+python-dotenv
+omegaconf
