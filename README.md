@@ -87,7 +87,6 @@ This script configures the environment, registers a sample function, dispatches 
 ### Task Management
 
 - **update_function_status(task_id, status)**: Update the status of a task in Redis.
-- **monitor_job_status(job_id)**: Monitor the status of a job and output updates.
 
 ### VAST.ai Integration
 
