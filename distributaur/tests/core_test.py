@@ -1,13 +1,14 @@
 import json
 import pytest
-from unittest.mock import MagicMock, patch
-
 import subprocess
 import time
-import pytest
+import os
+import tempfile
+from unittest.mock import MagicMock, patch
 
 from distributaur.core import (
     execute_function,
+    get_env_vars,
     register_function,
     registered_functions,
     close_redis_connection,
@@ -24,6 +25,17 @@ def mock_task_function():
     Fixture that returns a mock task function.
     """
     return MagicMock()
+
+
+def test_get_env_vars():
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_file:
+        temp_file.write("KEY1=value1\nKEY2=value2")
+        temp_file.close()
+
+        env_vars = get_env_vars(temp_file.name)
+        assert env_vars == {"KEY1": "value1", "KEY2": "value2"}
+
+        os.unlink(temp_file.name)
 
 
 def test_register_function(mock_task_function):

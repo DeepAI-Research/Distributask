@@ -4,6 +4,7 @@ import requests
 import json
 from typing import Dict, List, Optional
 import re
+import atexit
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
@@ -539,6 +540,7 @@ def rent_nodes(
                 pass
             else:
                 raise
+    atexit.register(terminate_nodes, rented_nodes)
     return rented_nodes
 
 
@@ -558,24 +560,3 @@ def terminate_nodes(nodes: List[Dict]) -> None:
             destroy_instance(node["instance_id"])
         except Exception as e:
             print(f"Error terminating node: {node['instance_id']}, {str(e)}")
-
-
-def handle_signal(nodes: List[Dict]) -> callable:
-    """
-    Creates and returns a signal handler for gracefully shutting down nodes upon receiving a SIGINT (Ctrl-C).
-    This function is particularly useful for ensuring a clean and controlled shutdown of resources.
-
-    Args:
-        nodes (List[Dict]): A list of node dictionaries that need to be terminated upon signal reception.
-
-    Returns:
-        callable: A signal handler function that can be set as the handler for SIGINT.
-    """
-    from distributaur.vast import terminate_nodes
-
-    def signal_handler(sig, frame):
-        print("SIGINT received, shutting down...")
-        terminate_nodes(nodes)
-        sys.exit(0)
-
-    return signal_handler

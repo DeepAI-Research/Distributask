@@ -66,10 +66,6 @@ This function searches for and rents nodes based on specified criteria such as m
 
 This function terminates a list of nodes by sending a termination request for each node's instance ID. It ensures that all specified nodes are properly shut down. If an error occurs during the termination of any node, it prints an error message.
 
-### `handle_signal(nodes)`
-
-This function creates and returns a signal handler for gracefully shutting down nodes upon receiving a SIGINT (Ctrl-C) signal. The signal handler terminates all the specified nodes and exits the program. This function is particularly useful for ensuring a clean and controlled shutdown of resources.
-
 ::: distributaur.vast
     :docstring:
     :members:

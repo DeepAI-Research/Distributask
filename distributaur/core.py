@@ -125,8 +125,8 @@ def configure(**kwargs) -> None:
     config.configure(**kwargs)
     redis_url = get_redis_values(config)
     app = Celery("distributaur", broker=redis_url, backend=redis_url)
-    # Disable task events
-    app.conf.worker_send_task_events = False
+    app.task_acks_late = True
+    app.worker_prefetch_multiplier = 1
 
 
 env_vars = get_env_vars(".env")
@@ -239,6 +239,24 @@ def check_job_status(job_id: str) -> dict:
     return status_counts
 
 
+def retry_failed_tasks(job_id: str) -> None:
+    task_keys = redis_client.keys(f"celery-task-meta-*")
+    for key in task_keys:
+        value = redis_client.get(key)
+        if value:
+            task_meta = json.loads(value)
+            if task_meta.get("status") == "FAILURE":
+                task_name = task_meta.get("name")
+                task_args = task_meta.get("args")
+                if task_name and task_args:
+                    func_name = task_name.split(".")[-1]
+                    args_json = task_args[1]
+                    args = json.loads(args_json)
+                    execute_function(func_name, args)
+                    print(f"Retried task: {func_name}")
+                    redis_client.delete(key)
+
+
 def monitor_job_status(job_id: str) -> None:
     """
     Continuously monitor the status of a job until there are no more active or pending tasks.
@@ -249,7 +267,18 @@ def monitor_job_status(job_id: str) -> None:
     while True:
         status_counts = check_job_status(job_id)
         if status_counts["STARTED"] == 0 and status_counts["PENDING"] == 0:
+            failed_count = status_counts["FAILURE"]
+            if failed_count > 0:
+                print(f"{failed_count} tasks failed for job {job_id}.")
+                retry = input("Do you want to retry the failed tasks? (y/n): ")
+                if retry.lower() == "y":
+                    # Retry failed tasks
+                    retry_failed_tasks(job_id)
+                    print("Retrying failed tasks completed.")
+                else:
+                    break
             break
+
         time.sleep(30)  # Polling interval, adjust as needed
 
 
