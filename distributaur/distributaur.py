@@ -115,7 +115,10 @@ class Distributaur:
         if self.pool is None or force_new:
             redis_url = self.get_redis_url()
             self.pool = ConnectionPool.from_url(redis_url)
-        self.redis_client = Redis(connection_pool=self.pool)
+            self.redis_client = Redis(connection_pool=self.pool)
+            atexit.register(self.pool.disconnect)
+            atexit.register(self.redis_client.close)
+            
         return self.redis_client
 
     def get_env(self, key: str, default: any = None) -> any:
