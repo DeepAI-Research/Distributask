@@ -13,6 +13,7 @@ from distributaur.distributaur import Distributaur
 def example_function(arg1, arg2):
     return f"Result: {arg1 + arg2}"
 
+
 distributaur = Distributaur()
 distributaur.register_function(example_function)
 
@@ -38,13 +39,12 @@ if __name__ == "__main__":
         "--concurrency=1",
     ]
     worker_process = subprocess.Popen(worker_cmd)
-    
+
     print("Worker process started.")
-    
-    
+
     start_monitoring_server()
     print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
-    
+
     try:
         print("Submitting tasks...")
         tasks = [
@@ -52,12 +52,14 @@ if __name__ == "__main__":
                 job_config["task_func"], job_config["task_params"]
             )
         ]
-        
+
         print("Tasks submitted to queue. Waiting for tasks to complete...")
-        
+
         while not all(task.ready() for task in tasks):
             print("Tasks completed: " + str([task.ready() for task in tasks]))
-            print("Tasks remaining: " + str([task for task in tasks if not task.ready()]))
+            print(
+                "Tasks remaining: " + str([task for task in tasks if not task.ready()])
+            )
             # sleep for a few seconds
             time.sleep(5)
             pass

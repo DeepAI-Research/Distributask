@@ -55,6 +55,7 @@ def test_execute_function(mock_delay, mock_task_function):
     mock_delay.assert_called_once_with(mock_task_function.__name__, json.dumps(params))
     print("Test passed")
 
+
 def test_register_function():
     distributaur = Distributaur()
 
@@ -174,7 +175,7 @@ def test_upload_directory():
         )
         for file in test_files:
             assert os.path.join(repo_path, file) in repo_files
-            
+
         for file in test_files:
             os.remove(os.path.join(temp_dir, file))
 
@@ -201,7 +202,7 @@ def test_delete_file():
         token=hf_token,
         repo_type="dataset",
     )
-    
+
     # delete the file on disk
     os.remove(test_file)
 
@@ -237,7 +238,7 @@ def test_file_exists():
         token=hf_token,
         repo_type="dataset",
     )
-    
+
     # delete the file on disk
     os.remove(test_file)
 

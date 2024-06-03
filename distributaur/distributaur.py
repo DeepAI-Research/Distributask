@@ -56,8 +56,10 @@ class Distributaur:
 
         # Load configuration from JSON file
         self.settings = OmegaConf.load(config_path)
-        
-        if not all(self.settings.values()) or not all(self.settings.get("redis", { "host": None }).values()):
+
+        if not all(self.settings.values()) or not all(
+            self.settings.get("redis", {"host": None}).values()
+        ):
             raise FileNotFoundError(
                 f"Configuration file not found at {config_path}. Saving a default config to config.json. Please fill in the necessary values."
             )
@@ -67,10 +69,10 @@ class Distributaur:
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
-        
+
         # at exit, close app
         atexit.register(self.app.close)
-        
+
         self.app.task_acks_late = True
         self.app.worker_prefetch_multiplier = 1
         self.call_function_task = self.app.task(
@@ -130,7 +132,7 @@ class Distributaur:
             self.redis_client = Redis(connection_pool=self.pool)
             atexit.register(self.pool.disconnect)
             atexit.register(self.redis_client.close)
-            
+
         return self.redis_client
 
     def get_env(self, key: str, default: any = None) -> any:
@@ -290,9 +292,7 @@ class Distributaur:
                         "error",
                     )
 
-    def delete_file(
-        self, repo_id: str, path_in_repo: str
-    ) -> None:
+    def delete_file(self, repo_id: str, path_in_repo: str) -> None:
         """Delete a file from a Hugging Face repository."""
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
@@ -311,9 +311,7 @@ class Distributaur:
                 "error",
             )
 
-    def file_exists(
-        self, repo_id: str, path_in_repo: str
-    ) -> bool:
+    def file_exists(self, repo_id: str, path_in_repo: str) -> bool:
         """Check if a file exists in a Hugging Face repository."""
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
