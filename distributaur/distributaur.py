@@ -39,6 +39,7 @@ class Distributaur:
 
         # check if config_path exists
         if not os.path.exists(config_path):
+            print(f"Creating config file at {config_path}")
             config = {
                 "redis": {
                     "host": os.getenv("REDIS_HOST"),
@@ -50,6 +51,9 @@ class Distributaur:
                 "HF_TOKEN": os.getenv("HF_TOKEN"),
                 "VAST_API_KEY": os.getenv("VAST_API_KEY"),
             }
+            
+            # print the config
+            print(config)
 
             with open(config_path, "w") as f:
                 json.dump(config, f, indent=2)
@@ -61,7 +65,7 @@ class Distributaur:
             self.settings.get("redis", {"host": None}).values()
         ):
             raise FileNotFoundError(
-                f"Configuration file not found at {config_path}. Saving a default config to config.json. Please fill in the necessary values."
+                f"Please fill in the necessary values."
             )
 
         env_dict = {key: value for key, value in os.environ.items()}
