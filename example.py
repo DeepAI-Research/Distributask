@@ -1,43 +1,34 @@
-# example.py
-
 import os
 import sys
 import subprocess
 import time
 
+
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 
-from distributaur.core import (
-    configure,
-    execute_function,
-    register_function,
-    get_env_vars,
-    config,
-    attach_to_existing_job,
-    monitor_job_status,
-)
+from distributaur.monitoring import start_monitoring_server
+from distributaur.distributaur import Distributaur
 
 
 def example_function(arg1, arg2):
-    return f"Result: arg1={arg1}, arg2={arg2}"
+    return f"Result: {arg1 + arg2}"
 
+distributaur = Distributaur()
+distributaur.register_function(example_function)
 
-register_function(example_function)
+if __name__ == "__main__":
+    api_key = distributaur.get_env("VAST_API_KEY")
+    if not api_key:
+        raise ValueError("Vast API key not found in configuration.")
 
+    job_config = {
+        "max_price": 0.10,
+        "max_nodes": 10,
+        "docker_image": "your-docker-image",
+        "task_func": "example_function",
+        "task_params": {"arg1": 1, "arg2": 2},
+    }
 
-def setup_and_run(config):
-    tasks = [execute_function(config["task_func"], config["task_params"])]
-
-    for task in tasks:
-        print(f"Task {task.id} dispatched.")
-
-    while not all(task.ready() for task in tasks):
-        time.sleep(1)
-
-    print("All tasks have been completed!")
-
-
-def start_worker():
     worker_cmd = [
         "celery",
         "-A",
@@ -47,45 +38,31 @@ def start_worker():
         "--concurrency=1",
     ]
     worker_process = subprocess.Popen(worker_cmd)
-    return worker_process
-
-
-if __name__ == "__main__":
-    # Load environment variables from .env file
-    env_vars = get_env_vars(".env")
-    configure(**env_vars)
-
-    api_key = config.get("VAST_API_KEY")
-    if not api_key:
-        raise ValueError("Vast API key not found in configuration.")
-
-    # Configure your job
-    job_config = {
-        "job_id": "example_job",
-        "max_price": 0.10,
-        "max_nodes": 1,
-        "docker_image": "your-docker-image",
-        "task_func": "example_function",
-        "task_params": {"arg1": 1, "arg2": "a"},
-    }
-
-    # Start the worker process
-    worker_process = start_worker()
-
+    
+    print("Worker process started.")
+    
+    
+    start_monitoring_server()
+    print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
+    
     try:
-        # Check if the job is already running
-        if attach_to_existing_job(job_config["job_id"]):
-            print("Attaching to an existing job...")
-            # Monitor job status and handle success/failure conditions
-            monitor_job_status(job_config["job_id"])
-        else:
-            # Run the job
-            setup_and_run(job_config)
-            # Monitor job status and handle success/failure conditions
-            monitor_job_status(job_config["job_id"])
+        print("Submitting tasks...")
+        tasks = [
+            distributaur.execute_function(
+                job_config["task_func"], job_config["task_params"]
+            )
+        ]
+        
+        print("Tasks submitted to queue. Waiting for tasks to complete...")
+        
+        while not all(task.ready() for task in tasks):
+            print("Tasks completed: " + str([task.ready() for task in tasks]))
+            print("Tasks remaining: " + str([task for task in tasks if not task.ready()]))
+            # sleep for a few seconds
+            time.sleep(5)
+            pass
 
     finally:
-        # Terminate the worker process
         worker_process.terminate()
         worker_process.wait()
         print("Worker process terminated.")

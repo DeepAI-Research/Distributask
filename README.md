@@ -64,7 +64,7 @@ To start processing tasks, you need to run a worker. You can start a worker usin
 
 ```bash
 sh scripts/kill_redis_connections.sh  # Optional: to clear previous Redis connections
-celery -A distributaur.core worker --loglevel=info
+celery -A distributaur.distributaur worker --loglevel=info
 ```
 
 ### Running an Example Task
@@ -87,7 +87,6 @@ This script configures the environment, registers a sample function, dispatches 
 ### Task Management
 
 - **update_function_status(task_id, status)**: Update the status of a task in Redis.
-- **monitor_job_status(job_id)**: Monitor the status of a job and output updates.
 
 ### VAST.ai Integration
 

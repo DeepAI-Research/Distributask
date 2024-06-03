@@ -1,2 +1,1 @@
-from .core_test import *
-from .vast_test import *
+from .distributaur_test import *

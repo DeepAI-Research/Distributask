@@ -1,4 +1,8 @@
-from distributaur.core import app
-import example
+import os
+import sys
 
-celery = app
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
+
+from example import distributaur
+
+celery = distributaur.app
