@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import time
 
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
@@ -45,11 +46,21 @@ if __name__ == "__main__":
     print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
     
     try:
+        print("Submitting tasks...")
         tasks = [
             distributaur.execute_function(
                 job_config["task_func"], job_config["task_params"]
             )
         ]
+        
+        print("Tasks submitted to queue. Waiting for tasks to complete...")
+        
+        while not all(task.ready() for task in tasks):
+            print("Tasks completed: " + str([task.ready() for task in tasks]))
+            print("Tasks remaining: " + str([task for task in tasks if not task.ready()]))
+            # sleep for a few seconds
+            time.sleep(5)
+            pass
 
     finally:
         worker_process.terminate()

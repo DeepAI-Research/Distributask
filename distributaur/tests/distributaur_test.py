@@ -12,6 +12,7 @@ from huggingface_hub import HfApi
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
 from distributaur.distributaur import Distributaur
+from distributaur.tests.test_worker import example_function
 
 
 @pytest.fixture
@@ -54,36 +55,8 @@ def test_execute_function(mock_delay, mock_task_function):
     mock_delay.assert_called_once_with(mock_task_function.__name__, json.dumps(params))
     print("Test passed")
 
-
-@patch("distributaur.distributaur.get_redis_connection")
-def test_update_function_status(mock_get_redis_connection):
-    """
-    Test the update_function_status function.
-    """
-    mock_redis_client = MagicMock()
-    mock_get_redis_connection.return_value = mock_redis_client
-    distributaur = Distributaur()
-
-    task_id = "task_123"
-    status = "SUCCESS"
-
-    distributaur.update_function_status(task_id, status)
-
-    mock_redis_client.set.assert_called_once_with(f"task_status:{task_id}", status)
-    print("Test passed")
-
-
-def test_redis_connection():
-    distributaur = Distributaur()
-    assert distributaur.redis_client.ping()
-    print("Redis connection test passed")
-
-
 def test_register_function():
     distributaur = Distributaur()
-
-    def example_function(arg1, arg2):
-        return f"Result: arg1={arg1}, arg2={arg2}"
 
     distributaur.register_function(example_function)
     assert "example_function" in distributaur.registered_functions
@@ -94,9 +67,6 @@ def test_register_function():
 def test_execute_function():
     distributaur = Distributaur()
 
-    def example_function(arg1, arg2):
-        return f"Result: arg1={arg1}, arg2={arg2}"
-
     distributaur.register_function(example_function)
     task_params = {"arg1": 10, "arg2": 20}
     task = distributaur.execute_function("example_function", task_params)
@@ -106,9 +76,6 @@ def test_execute_function():
 
 def test_worker_task_execution():
     distributaur = Distributaur()
-
-    def example_function(arg1, arg2):
-        return f"Result: arg1={arg1}, arg2={arg2}"
 
     distributaur.register_function(example_function)
 
@@ -129,7 +96,7 @@ def test_worker_task_execution():
     task = distributaur.execute_function("example_function", task_params)
     result = task.get(timeout=3)
 
-    assert result == "Result: arg1=10, arg2=20"
+    assert result == "Result: arg1=30"
 
     worker_process.terminate()
     worker_process.wait()
@@ -141,24 +108,21 @@ def test_task_status_update():
     distributaur = Distributaur()
     redis_client = distributaur.get_redis_connection()
 
-    try:
-        task_status_keys = redis_client.keys("task_status:*")
-        if task_status_keys:
-            redis_client.delete(*task_status_keys)
+    task_status_keys = redis_client.keys("task_status:*")
+    if task_status_keys:
+        redis_client.delete(*task_status_keys)
 
-        task_id = "test_task_123"
-        status = "COMPLETED"
+    task_id = "test_task_123"
+    status = "COMPLETED"
 
-        distributaur.update_function_status(task_id, status)
+    distributaur.update_function_status(task_id, status)
 
-        status_from_redis = redis_client.get(f"task_status:{task_id}").decode()
-        assert status_from_redis == status
+    status_from_redis = redis_client.get(f"task_status:{task_id}").decode()
+    assert status_from_redis == status
 
-        redis_client.delete(f"task_status:{task_id}")
+    redis_client.delete(f"task_status:{task_id}")
 
-        print("Task status update test passed")
-    finally:
-        redis_client.close()
+    print("Task status update test passed")
 
 
 def test_initialize_repo():
@@ -171,8 +135,8 @@ def test_initialize_repo():
 
     # Check if the repository exists
     api = HfApi(token=hf_token)
-    repo_info = api.repo_info(repo_id=repo_id, repo_type="dataset")
-    assert repo_info["id"] == repo_id
+    repo_info = api.repo_info(repo_id=repo_id, repo_type="dataset", timeout=30)
+    assert repo_info.id == repo_id
 
     # Check if the config.json file exists in the repository
     repo_files = api.list_repo_files(
@@ -186,6 +150,7 @@ def test_initialize_repo():
 
 def test_upload_directory():
     distributaur = Distributaur()
+    distributaur.initialize_dataset()
     # Create a temporary directory for testing
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create test files
@@ -209,6 +174,9 @@ def test_upload_directory():
         )
         for file in test_files:
             assert os.path.join(repo_path, file) in repo_files
+            
+        for file in test_files:
+            os.remove(os.path.join(temp_dir, file))
 
         # Clean up the repository
         api.delete_repo(repo_id=repo_id, repo_type="dataset", token=hf_token)
@@ -216,12 +184,15 @@ def test_upload_directory():
 
 def test_delete_file():
     distributaur = Distributaur()
-
+    distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
 
     # Create a test file in the repository
     test_file = "test.txt"
+    with open(test_file, "w") as f:
+        f.write("Test content")
+
     api = HfApi(token=hf_token)
     api.upload_file(
         path_or_fileobj=test_file,
@@ -230,6 +201,9 @@ def test_delete_file():
         token=hf_token,
         repo_type="dataset",
     )
+    
+    # delete the file on disk
+    os.remove(test_file)
 
     # Delete the file from the repository
     distributaur.delete_file(repo_id, test_file)
@@ -246,12 +220,15 @@ def test_delete_file():
 
 def test_file_exists():
     distributaur = Distributaur()
-
+    distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
 
     # Create a test file in the repository
     test_file = "test.txt"
+    with open(test_file, "w") as f:
+        f.write("Test content")
+
     api = HfApi(token=hf_token)
     api.upload_file(
         path_or_fileobj=test_file,
@@ -260,6 +237,9 @@ def test_file_exists():
         token=hf_token,
         repo_type="dataset",
     )
+    
+    # delete the file on disk
+    os.remove(test_file)
 
     # Check if the file exists in the repository
     assert distributaur.file_exists(repo_id, test_file)
@@ -273,12 +253,16 @@ def test_file_exists():
 
 def test_list_files():
     distributaur = Distributaur()
-
+    distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
 
     # Create test files in the repository
     test_files = ["test1.txt", "test2.txt"]
+    # for each test_file, write the file
+    for file in test_files:
+        with open(file, "w") as f:
+            f.write("Test content")
     api = HfApi(token=hf_token)
     for file in test_files:
         api.upload_file(
@@ -291,6 +275,9 @@ def test_list_files():
 
     # List the files in the repository
     repo_files = distributaur.list_files(repo_id)
+
+    for file in test_files:
+        os.remove(file)
 
     # Check if the test files are present in the repository
     for file in test_files:

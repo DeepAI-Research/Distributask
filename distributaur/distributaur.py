@@ -4,6 +4,7 @@ import json
 import requests
 from typing import Dict, List
 import atexit
+import tempfile
 
 from celery import Celery
 from redis import ConnectionPool, Redis
@@ -38,7 +39,6 @@ class Distributaur:
 
         # check if config_path exists
         if not os.path.exists(config_path):
-            # TODO: Get all the necessary environment variables and create a config file
             config = {
                 "redis": {
                     "host": os.getenv("REDIS_HOST"),
@@ -51,27 +51,39 @@ class Distributaur:
                 "VAST_API_KEY": os.getenv("VAST_API_KEY"),
             }
 
-            # Create a config file
             with open(config_path, "w") as f:
                 json.dump(config, f, indent=2)
 
+        # Load configuration from JSON file
+        self.settings = OmegaConf.load(config_path)
+        
+        if not all(self.settings.values()) or not all(self.settings.get("redis", { "host": None }).values()):
             raise FileNotFoundError(
                 f"Configuration file not found at {config_path}. Saving a default config to config.json. Please fill in the necessary values."
             )
-
-        # Load configuration from JSON file
-        self.settings = OmegaConf.load(config_path)
 
         env_dict = {key: value for key, value in os.environ.items()}
         self.settings = OmegaConf.merge(self.settings, OmegaConf.create(env_dict))
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
+        
+        # at exit, close app
+        atexit.register(self.app.close)
+        
         self.app.task_acks_late = True
         self.app.worker_prefetch_multiplier = 1
         self.call_function_task = self.app.task(
             bind=True, name="call_function_task", max_retries=3, default_retry_delay=30
         )(self.call_function_task)
+
+    def __del__(self):
+        if self.pool is not None:
+            self.pool.disconnect()
+        if self.redis_client is not None:
+            self.redis_client.close()
+        if self.app is not None:
+            self.app.close()
 
     def log(self, message: str, level: str = "info") -> None:
         logger = get_task_logger(__name__)
@@ -112,7 +124,7 @@ class Distributaur:
         """
         if self.redis_client is not None and not force_new:
             return self.redis_client
-        if self.pool is None or force_new:
+        else:
             redis_url = self.get_redis_url()
             self.pool = ConnectionPool.from_url(redis_url)
             self.redis_client = Redis(connection_pool=self.pool)
@@ -204,13 +216,12 @@ class Distributaur:
 
     def initialize_dataset(self, **kwargs) -> None:
         """Initialize a Hugging Face repository if it doesn't exist."""
-        repo_type = "dataset"
         repo_id = self.settings.get("HF_REPO_ID")
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
 
         try:
-            repo_info = api.repo_info(repo_id=repo_id, repo_type=repo_type)
+            repo_info = api.repo_info(repo_id=repo_id, repo_type="dataset", timeout=30)
         except HTTPError as e:
             if e.response.status_code == 404:
                 self.log(
@@ -218,7 +229,7 @@ class Distributaur:
                     "warn",
                 )
                 api.create_repo(
-                    repo_id=repo_id, token=hf_token, repo_type=repo_type, **kwargs
+                    repo_id=repo_id, token=hf_token, repo_type="dataset", **kwargs
                 )
             else:
                 raise e
@@ -233,14 +244,15 @@ class Distributaur:
             },
         }
 
-        with Repository(
-            local_dir=".",
-            clone_from=repo_id,
-            repo_type=repo_type,
-            use_auth_token=hf_token,
-        ).commit(commit_message="Add config.json"):
-            with open("config.json", "w") as f:
-                json.dump(config, f, indent=2)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with Repository(
+                local_dir=temp_dir,
+                clone_from=repo_id,
+                repo_type="dataset",
+                use_auth_token=hf_token,
+            ).commit(commit_message="Add config.json"):
+                with open(os.path.join(temp_dir, "config.json"), "w") as f:
+                    json.dump(config, f, indent=2)
 
         self.log(f"Initialized repository {repo_id}.")
 
@@ -279,7 +291,7 @@ class Distributaur:
                     )
 
     def delete_file(
-        self, repo_id: str, path_in_repo: str, repo_type: str = "dataset"
+        self, repo_id: str, path_in_repo: str
     ) -> None:
         """Delete a file from a Hugging Face repository."""
         hf_token = self.settings.get("HF_TOKEN")
@@ -289,7 +301,7 @@ class Distributaur:
             api.delete_file(
                 repo_id=repo_id,
                 path_in_repo=path_in_repo,
-                repo_type=repo_type,
+                repo_type="dataset",
                 token=hf_token,
             )
             self.log(f"Deleted {path_in_repo} from Hugging Face repo {repo_id}")
@@ -300,7 +312,7 @@ class Distributaur:
             )
 
     def file_exists(
-        self, repo_id: str, path_in_repo: str, repo_type: str = "dataset"
+        self, repo_id: str, path_in_repo: str
     ) -> bool:
         """Check if a file exists in a Hugging Face repository."""
         hf_token = self.settings.get("HF_TOKEN")
@@ -308,7 +320,7 @@ class Distributaur:
 
         try:
             repo_files = api.list_repo_files(
-                repo_id=repo_id, repo_type=repo_type, token=hf_token
+                repo_id=repo_id, repo_type="dataset", token=hf_token
             )
             return path_in_repo in repo_files
         except Exception as e:
@@ -318,14 +330,14 @@ class Distributaur:
             )
             return False
 
-    def list_files(self, repo_id: str, repo_type: str = "dataset") -> list:
+    def list_files(self, repo_id: str) -> list:
         """Get a list of files from a Hugging Face repository."""
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
 
         try:
             repo_files = api.list_repo_files(
-                repo_id=repo_id, repo_type=repo_type, token=hf_token
+                repo_id=repo_id, repo_type="dataset", token=hf_token
             )
             return repo_files
         except Exception as e:
