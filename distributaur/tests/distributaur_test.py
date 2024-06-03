@@ -133,6 +133,12 @@ def test_initialize_repo():
     distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
+    
+    print("repo_id")
+    print(repo_id)
+    
+    print("hf_token")
+    print(hf_token)
 
     # Check if the repository exists
     api = HfApi(token=hf_token)

@@ -16,7 +16,6 @@ jobs:
       VAST_API_KEY: ${{ secrets.VAST_API_KEY }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_REPO_ID: ${{ secrets.HF_REPO_ID }}
-      HF_PATH: ${{ secrets.HF_PATH }}
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}

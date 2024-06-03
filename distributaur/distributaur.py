@@ -386,7 +386,7 @@ class Distributaur:
             "image": image,
             "env": "",
             "disk": 16,  # Set a non-zero value for disk
-            "onstart": f"export PATH=$PATH:/ &&  cd ../ && REDIS_HOST={self.get_env('REDIS_HOST')} REDIS_PORT={self.get_env('REDIS_PORT')} REDIS_USER={self.get_env('REDIS_USER')} REDIS_PASSWORD={self.get_env('REDIS_PASSWORD')} HF_TOKEN={self.get_env('HF_TOKEN')} HF_REPO_ID={self.get_env('HF_REPO_ID')} HF_PATH={self.get_env('HF_PATH')} VAST_API_KEY={self.get_env('VAST_API_KEY')} celery -A distributaur.worker worker --loglevel=info",
+            "onstart": f"export PATH=$PATH:/ &&  cd ../ && REDIS_HOST={self.get_env('REDIS_HOST')} REDIS_PORT={self.get_env('REDIS_PORT')} REDIS_USER={self.get_env('REDIS_USER')} REDIS_PASSWORD={self.get_env('REDIS_PASSWORD')} HF_TOKEN={self.get_env('HF_TOKEN')} HF_REPO_ID={self.get_env('HF_REPO_ID')} VAST_API_KEY={self.get_env('VAST_API_KEY')} celery -A distributaur.worker worker --loglevel=info",
             "runtype": "ssh ssh_proxy",
             "image_login": None,
             "python_utf8": False,
