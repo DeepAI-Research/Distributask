@@ -51,7 +51,7 @@ class Distributaur:
                 "HF_TOKEN": os.getenv("HF_TOKEN"),
                 "VAST_API_KEY": os.getenv("VAST_API_KEY"),
             }
-            
+
             # print the config
             print(config)
 
@@ -64,15 +64,14 @@ class Distributaur:
         if not all(self.settings.values()) or not all(
             self.settings.get("redis", {"host": None}).values()
         ):
-            raise FileNotFoundError(
-                f"Please fill in the necessary values."
-            )
+            raise FileNotFoundError(f"Please fill in the necessary values.")
 
         env_dict = {key: value for key, value in os.environ.items()}
         self.settings = OmegaConf.merge(self.settings, OmegaConf.create(env_dict))
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
+        self.app.conf.broker_pool_limit = 5
 
         # at exit, close app
         atexit.register(self.app.close)

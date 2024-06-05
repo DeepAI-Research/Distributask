@@ -6,13 +6,11 @@ import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 
-from distributaur.monitoring import start_monitoring_server
+from distributaur.monitoring import start_monitoring_server, stop_monitoring_server
 from distributaur.distributaur import Distributaur
-
 
 def example_function(arg1, arg2):
     return f"Result: {arg1 + arg2}"
-
 
 distributaur = Distributaur()
 distributaur.register_function(example_function)
@@ -62,6 +60,12 @@ if __name__ == "__main__":
             )
             # sleep for a few seconds
             time.sleep(5)
+
+            user_input = input("Press q to quit monitoring: ")
+            if user_input.lower() == "q":
+                print("Stopping monitoring")
+                stop_monitoring_server()
+
             pass
 
     finally:
