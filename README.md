@@ -1,4 +1,4 @@
-# distributaur <a href="https://discord.gg/qetWd7J9De"><img style="float: right" src="https://dcbadge.vercel.app/api/server/JMfbmHdPNB" alt=""></a> <a href="https://github.com/RaccoonResearch/distributaur/stargazers"><img style="float: right; padding: 5px;" src="https://img.shields.io/github/stars/RaccoonResearch/distributaur?style=social" alt=""></a>
+# distributaur <a href="https://discord.gg/JMfbmHdPNB"><img style="float: right" src="https://dcbadge.vercel.app/api/server/JMfbmHdPNB" alt=""></a> <a href="https://github.com/RaccoonResearch/distributaur/stargazers"><img style="float: right; padding: 5px;" src="https://img.shields.io/github/stars/RaccoonResearch/distributaur?style=social" alt=""></a>
 
 A super simple way to distribute rendering tasks across multiple machines.
 
