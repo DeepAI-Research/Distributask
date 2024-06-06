@@ -14,8 +14,7 @@ def start_monitoring_server(task_name="example_worker") -> None:
     flower_process = Popen(
         [
             sys.executable,
-            "-m"
-            "celery",
+            "-m" "celery",
             "-A",
             task_name,
             "--broker=redis://default:lQXiTg6afNjUV60JN8QLAYOFYyq7YXZy@redis-17504.c289.us-west-1-2.ec2.redns.redis-cloud.com:17504/0",
