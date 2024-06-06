@@ -29,7 +29,7 @@ class Distributaur:
     registered_functions: dict = {}
     pool: ConnectionPool = None
 
-    def __init__(self, config_path="config.json", env_path=".env") -> None:
+    def __init__(self, config_path="../config.json", env_path=".env") -> None:
         """
         Initialize the Config object by loading configuration from a JSON file using omegaconf
         and overriding with environment variables from a .env file.

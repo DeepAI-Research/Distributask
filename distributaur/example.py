@@ -5,8 +5,8 @@ import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 
-from distributaur.monitoring import start_monitoring_server, stop_monitoring_server
-from distributaur.distributaur import Distributaur
+from monitoring import start_monitoring_server, stop_monitoring_server
+from distributaur import Distributaur
 
 distributaur = Distributaur()
 
