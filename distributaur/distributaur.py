@@ -33,6 +33,13 @@ class Distributaur:
         """
         Initialize the Config object by loading configuration from a JSON file using omegaconf
         and overriding with environment variables from a .env file.
+
+        Args:
+            config_path (str): Path to the configuration JSON file. Defaults to "config.json".
+            env_path (str): Path to the .env file. Defaults to ".env".
+
+        Raises:
+            FileNotFoundError: If any required configuration value is missing.
         """
         # Load environment variables from .env file
         load_dotenv(env_path)

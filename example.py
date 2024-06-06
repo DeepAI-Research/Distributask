@@ -9,22 +9,38 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 from distributaur.monitoring import start_monitoring_server, stop_monitoring_server
 from distributaur.distributaur import Distributaur
 
-def example_function(arg1, arg2):
-    return f"Result: {arg1 + arg2}"
+def example_function(index, arg1, arg2):
+    # Create expected outputs
+    result = arg1 + arg2
+    
+    # save the result to a file
+    with open(f"result_{index}.txt", "w") as f:
+        f.write(str(result))
+    
+    return f"Result: {result}"
 
 distributaur = Distributaur()
 distributaur.register_function(example_function)
 
 if __name__ == "__main__":
+    # Create a new repository if it doesn't exist
+    
+    # Then, create a file with the current date and time and save it as "datetime.txt"
+    
+    # Upload this to the repository
+    
+    
     api_key = distributaur.get_env("VAST_API_KEY")
     if not api_key:
         raise ValueError("Vast API key not found in configuration.")
 
     job_config = {
+        "index": "0",
         "max_price": 0.10,
         "max_nodes": 10,
         "docker_image": "your-docker-image",
         "task_func": "example_function",
+        "outputs": ["result_*.txt"],
         "task_params": {"arg1": 1, "arg2": 2},
     }
 
@@ -43,11 +59,31 @@ if __name__ == "__main__":
     start_monitoring_server()
     print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
 
-    try:
+    # Check if the 'outputs' already exist in the current huggingface repo and ask user if they want to overwrite
+    # If they want to overwrite, delete the existing files
+    # If they don't want to overwrite, skip the task
+    
+    skip_task = False
+    # for each file in job_config["outputs"]
+    for output in job_config["outputs"]:
+        # replace * with the index of the task
+        output = output.replace("*", job_config["index"])
+        file_exists = distributaur.file_exists(output)
+    
+        if file_exists:
+            user_input = input("Files already exist. Do you want to overwrite them? (y/n): ")
+            if user_input.lower() == "n":
+                print("Skipping task")
+                skip_task = True
+            else:
+                print("Overwriting files")
+                distributaur.delete_file(output)
+
+    if skip_task is False:        
         print("Submitting tasks...")
         tasks = [
             distributaur.execute_function(
-                job_config["task_func"], job_config["task_params"]
+                job_config["index"], job_config["task_func"], job_config["task_params"]
             )
         ]
 
@@ -68,7 +104,6 @@ if __name__ == "__main__":
 
             pass
 
-    finally:
-        worker_process.terminate()
-        worker_process.wait()
-        print("Worker process terminated.")
+    worker_process.terminate()
+    worker_process.wait()
+    print("Worker process terminated.")

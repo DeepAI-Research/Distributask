@@ -133,10 +133,10 @@ def test_initialize_repo():
     distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
-    
+
     print("repo_id")
     print(repo_id)
-    
+
     print("hf_token")
     print(hf_token)
 
@@ -311,3 +311,70 @@ def rented_nodes():
 def test_rent_run_terminate(rented_nodes):
     assert len(rented_nodes) == 1
     time.sleep(3)  # sleep for 3 seconds to simulate runtime
+
+
+def test_get_redis_url():
+    distributaur = Distributaur()
+    redis_url = distributaur.get_redis_url()
+
+    assert redis_url.startswith("redis://")
+    assert distributaur.settings.redis.username in redis_url
+    assert distributaur.settings.redis.password in redis_url
+    assert distributaur.settings.redis.host in redis_url
+    assert str(distributaur.settings.redis.port) in redis_url
+
+
+def test_get_redis_connection_force_new():
+    distributaur = Distributaur()
+    redis_client1 = distributaur.get_redis_connection()
+    redis_client2 = distributaur.get_redis_connection(force_new=True)
+
+    assert redis_client1 is not redis_client2
+
+
+def test_get_redis_connection_force_new():
+    distributaur = Distributaur()
+    redis_client1 = distributaur.get_redis_connection()
+    redis_client2 = distributaur.get_redis_connection(force_new=True)
+
+    assert redis_client1 is not redis_client2
+
+
+def test_get_env_with_default():
+    distributaur = Distributaur()
+    default_value = "default"
+    value = distributaur.get_env("NON_EXISTENT_KEY", default_value)
+
+    assert value == default_value
+
+
+@patch("requests.get")
+def test_search_offers(mock_get):
+    distributaur = Distributaur()
+    max_price = 1.0
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"offers": [{"id": "offer1"}, {"id": "offer2"}]}
+    mock_get.return_value = mock_response
+
+    offers = distributaur.search_offers(max_price)
+
+    assert len(offers) == 2
+    assert offers[0]["id"] == "offer1"
+    assert offers[1]["id"] == "offer2"
+
+
+@patch("requests.put")
+def test_create_instance(mock_put):
+    distributaur = Distributaur()
+    offer_id = "offer1"
+    image = "test_image"
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"new_contract": "instance1"}
+    mock_put.return_value = mock_response
+
+    instance = distributaur.create_instance(offer_id, image)
+
+    assert instance["new_contract"] == "instance1"
