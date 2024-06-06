@@ -1,4 +1,4 @@
-<img src="assets/simian_banner.png" style="width: 100%">
+<img src="assets/banner.png" style="width: 100%">
 
 Distributaur is a super simple way to distribute rendering tasks across multiple machines.
 
