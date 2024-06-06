@@ -90,6 +90,7 @@ class Distributaur:
         )(self.call_function_task)
 
     def __del__(self):
+        """Destructor to clean up resources."""
         if self.pool is not None:
             self.pool.disconnect()
         if self.redis_client is not None:
@@ -98,6 +99,13 @@ class Distributaur:
             self.app.close()
 
     def log(self, message: str, level: str = "info") -> None:
+        """
+        Log a message with the specified level.
+
+        Args:
+            message (str): The message to log.
+            level (str): The logging level. Defaults to "info".
+        """
         logger = get_task_logger(__name__)
         getattr(logger, level)(message)
 
@@ -128,8 +136,7 @@ class Distributaur:
         Retrieve or create a new Redis connection using the connection pool.
 
         Args:
-            config (Config): The configuration object containing Redis connection details.
-            force_new (bool): Force the creation of a new connection if set to True.
+            force_new (bool): Force the creation of a new connection if set to True. Defaults to False.
 
         Returns:
             Redis: A Redis connection object.
@@ -151,7 +158,7 @@ class Distributaur:
 
         Args:
             key (str): The key to look for in the settings.
-            default (any, optional): The default value to return if the key is not found.
+            default (any): The default value to return if the key is not found. Defaults to None.
 
         Returns:
             any: The value from the settings if the key exists, otherwise the default value.
@@ -269,7 +276,13 @@ class Distributaur:
         self.log(f"Initialized repository {repo_id}.")
 
     def upload_directory(self, output_dir: str, repo_dir: str) -> None:
-        """Upload the rendered outputs to a Huggingface repository."""
+        """
+        Upload the rendered outputs to a Huggingface repository.
+
+        Args:
+            output_dir (str): The local directory containing the files to upload.
+            repo_dir (str): The directory path in the repository where the files will be uploaded.
+        """
         hf_token = self.settings.get("HF_TOKEN")
         repo_id = self.settings.get("HF_REPO_ID")
 
@@ -303,7 +316,13 @@ class Distributaur:
                     )
 
     def delete_file(self, repo_id: str, path_in_repo: str) -> None:
-        """Delete a file from a Hugging Face repository."""
+        """
+        Delete a file from a Hugging Face repository.
+
+        Args:
+            repo_id (str): The ID of the repository.
+            path_in_repo (str): The path of the file to delete within the repository.
+        """
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
 
@@ -322,7 +341,16 @@ class Distributaur:
             )
 
     def file_exists(self, repo_id: str, path_in_repo: str) -> bool:
-        """Check if a file exists in a Hugging Face repository."""
+        """
+        Check if a file exists in a Hugging Face repository.
+
+        Args:
+            repo_id (str): The ID of the repository.
+            path_in_repo (str): The path of the file to check within the repository.
+
+        Returns:
+            bool: True if the file exists in the repository, False otherwise.
+        """
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
 
@@ -339,7 +367,15 @@ class Distributaur:
             return False
 
     def list_files(self, repo_id: str) -> list:
-        """Get a list of files from a Hugging Face repository."""
+        """
+        Get a list of files from a Hugging Face repository.
+
+        Args:
+            repo_id (str): The ID of the repository.
+
+        Returns:
+            list: A list of file paths in the repository.
+        """
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
 
@@ -356,6 +392,18 @@ class Distributaur:
             return []
 
     def search_offers(self, max_price: float) -> List[Dict]:
+        """
+        Search for available offers on the Vast.ai platform.
+
+        Args:
+            max_price (float): The maximum price per hour for the offers.
+
+        Returns:
+            List[Dict]: A list of dictionaries representing the available offers.
+
+        Raises:
+            requests.exceptions.RequestException: If there is an error while making the API request.
+        """
         api_key = self.get_env("VAST_API_KEY")
         base_url = "https://console.vast.ai/api/v0/bundles/"
         headers = {
@@ -383,6 +431,20 @@ class Distributaur:
             raise
 
     def create_instance(self, offer_id: str, image: str) -> Dict:
+        """
+        Create an instance on the Vast.ai platform.
+
+        Args:
+            offer_id (str): The ID of the offer to create the instance from.
+            image (str): The image to use for the instance.
+
+        Returns:
+            Dict: A dictionary representing the created instance.
+
+        Raises:
+            ValueError: If the Vast.ai API key is not set in the environment.
+            Exception: If there is an error while creating the instance.
+        """
         if self.get_env("VAST_API_KEY") is None:
             self.log("VAST_API_KEY is not set in the environment", "error")
             raise ValueError("VAST_API_KEY is not set in the environment")
@@ -414,6 +476,15 @@ class Distributaur:
         return response.json()
 
     def destroy_instance(self, instance_id: str) -> Dict:
+        """
+        Destroy an instance on the Vast.ai platform.
+
+        Args:
+            instance_id (str): The ID of the instance to destroy.
+
+        Returns:
+            Dict: A dictionary representing the result of the destroy operation.
+        """
         api_key = self.get_env("VAST_API_KEY")
         headers = {"Authorization": f"Bearer {api_key}"}
         url = (
@@ -423,6 +494,17 @@ class Distributaur:
         return response.json()
 
     def rent_nodes(self, max_price: float, max_nodes: int, image: str) -> List[Dict]:
+        """
+        Rent nodes on the Vast.ai platform.
+
+        Args:
+            max_price (float): The maximum price per hour for the nodes.
+            max_nodes (int): The maximum number of nodes to rent.
+            image (str): The image to use for the nodes.
+
+        Returns:
+            List[Dict]: A list of dictionaries representing the rented nodes.
+        """
         offers = self.search_offers(max_price)
         rented_nodes: List[Dict] = []
         for offer in offers:
@@ -442,6 +524,12 @@ class Distributaur:
         return rented_nodes
 
     def terminate_nodes(self, nodes: List[Dict]) -> None:
+        """
+        Terminate the rented nodes.
+
+        Args:
+            nodes (List[Dict]): A list of dictionaries representing the rented nodes.
+        """
         for node in nodes:
             try:
                 self.destroy_instance(node["instance_id"])
