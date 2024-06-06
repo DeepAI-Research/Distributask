@@ -442,3 +442,27 @@ class Distributaur:
                 self.log(
                     f"Error terminating node: {node['instance_id']}, {str(e)}", "error"
                 )
+
+    def execute_command(
+        self, node, command
+    ):  # implement execute command API call with the worker_cmd
+        api_key = self.get_env("VAST_API_KEY")
+        headers = {"Authorization": f"Bearer {api_key}"}
+
+        url = f"https://console.vast.ai/api/v0/instances/{node['instance_id']}/?api_key={api_key}"
+
+        response = requests.put(url, headers=headers, json={"command": command})
+        return response.json()
+
+    def get_logs(self, node: Dict) -> str:
+        api_key = self.get_env("VAST_API_KEY")
+        headers = {"Authorization": f"Bearer {api_key}"}
+
+        url = f"https://console.vast.ai/api/v0/instances/{node['instance_id']}/?api_key={api_key}"
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return "FAILED"
