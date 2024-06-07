@@ -1,3 +1,4 @@
+from io import StringIO
 import json
 import pytest
 import time
@@ -7,8 +8,15 @@ from unittest.mock import MagicMock, patch
 
 from huggingface_hub import HfApi
 
+<<<<<<< HEAD
 from ..distributaur import create_from_config
 from .worker import example_test_function
+=======
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
+
+from distributaur.distributaur import Distributaur
+from distributaur.tests.worker import example_function
+>>>>>>> 5c11e77 (Tests passing)
 
 
 @pytest.fixture
@@ -75,9 +83,15 @@ def test_execute_function():
 
 
 # def test_worker_task_execution():
+<<<<<<< HEAD
 #     distributaur = create_from_config()
 
 #     distributaur.register_function(example_test_function)
+=======
+#     distributaur = Distributaur()
+
+#     distributaur.register_function(example_function)
+>>>>>>> 5c11e77 (Tests passing)
 
 #     worker_cmd = [
 #         "celery",
@@ -94,10 +108,17 @@ def test_execute_function():
 
 #     task_params = {"arg1": 10, "arg2": 20}
 #     print("executing task")
+<<<<<<< HEAD
 #     task = distributaur.execute_function("example_test_function", task_params)
 #     result = task.get(timeout=30)
 
 #     assert result == "+arg2=30"
+=======
+#     task = distributaur.execute_function("example_function", task_params)
+#     result = task.get(timeout=30)
+
+#     assert result == "Result: arg1=30"
+>>>>>>> 5c11e77 (Tests passing)
 
 #     worker_process.terminate()
 #     worker_process.wait()
@@ -382,71 +403,54 @@ def test_create_instance(mock_put):
     assert instance["new_contract"] == "instance1"
 
 
-# def test_local_example_run():
+def test_local_example_run():
+
+    # Capture the stdout and stderr during the execution
+    with patch("sys.stdout", new=StringIO()) as fake_out, patch(
+        "sys.stderr", new=StringIO()
+    ) as fake_err:
+        # verify that the local.py exists, ls the files if it doesnt
+        if not os.path.exists("distributaur/example/local.py"):
+            print("Local.py does not exist")
+        exec(open("distributaur/example/local.py").read())
+
+    # def test_distributed_example_function():
+    #     distributaur = Distributaur()
+    #     distributaur.register_function(example_function)
+
+    #     task_params = {"index": 0, "arg1": 5, "arg2": 10}
+    #     result = example_function(**task_params)
+
+    #     assert result == "Task 0 completed. Result (5 + 10): 15"
+
+# @patch("distributaur.distributaur.Distributaur.rent_nodes")
+# @patch("distributaur.distributaur.Distributaur.terminate_nodes")
+# def test_distributed_example_run(mock_rent_nodes, mock_terminate_nodes):
+#     # Mock the rent_nodes method to return a list of rented nodes
+#     mock_rent_nodes.return_value = [{"instance_id": "instance1"}]
+
+#     # Run the main block of code from distributed.py
+#     # You can modify the code to accept command-line arguments for testing purposes
+#     # For example, you can pass the number of tasks as an argument
+#     sys.argv = ["example/distributed.py", "--tasks", "3"]
+
 #     # Capture the stdout and stderr during the execution
 #     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
 #         "sys.stderr", new=StringIO()
 #     ) as fake_err:
-#         distributaur = create_from_config()
+#         exec(open("example/distributed.py").read())
 
-#         number_of_tasks = 5
+#     # Assert the expected output or behavior
+#     # For example, check if the expected number of tasks were submitted
+#     assert "TOTAL NODES AVAILABLE:" in fake_out.getvalue()
+#     assert "TOTAL RENTED NODES:" in fake_out.getvalue()
+#     assert "Submitting tasks..." in fake_out.getvalue()
+#     assert (
+#         "Tasks submitted to queue. Waiting for tasks to complete..."
+#         in fake_out.getvalue()
+#     )
+#     assert "Worker process terminated." in fake_out.getvalue()
+#     assert "Example completed." in fake_out.getvalue()
 
-#         # Start a new process to run the local example
-#         process = subprocess.Popen(["python", "-m", "distributaur.example.local"])
-#         process.wait()
-
-#         # Assert that the expected output is captured in stdout and stderr
-#         assert "Tasks submitted to queue. Waiting for tasks to complete..." in fake_out.getvalue()
-#         assert "All tasks completed." in fake_out.getvalue()
-#         assert "Example completed." in fake_out.getvalue()
-
-#         # Assert that no errors are captured in stderr
-#         assert fake_err.getvalue() == ""
-
-#         # Assert that the expected files are uploaded to the Hugging Face repository
-#         repo_id = distributaur.get_env("HF_REPO_ID")
-#         repo_files = distributaur.list_files(repo_id)
-#         assert "datetime.txt" in repo_files
-#         assert all(f"result_{i}.txt" in repo_files for i in range(number_of_tasks))
-
-# def test_distributed_example_run():
-#     distributaur = create_from_config()
-
-#     number_of_tasks = 10
-
-#     # Capture the stdout and stderr during the execution
-#     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
-#         "sys.stderr", new=StringIO()
-#     ) as fake_err:
-#         # Start a new process to run the distributed example
-#         process = subprocess.Popen(["python", "-m", "distributaur.example.distributed"])
-#         process.wait()
-
-#         # Assert that the expected output is captured in stdout and stderr
-#         assert "TOTAL NODES AVAILABLE: " in fake_out.getvalue()
-#         assert "TOTAL RENTED NODES: " in fake_out.getvalue()
-#         assert "Monitoring server started. Visit http://localhost:5555 to monitor the job." in fake_out.getvalue()
-#         assert "Tasks submitted to queue. Waiting for tasks to complete..." in fake_out.getvalue()
-#         assert "All tasks completed." in fake_out.getvalue()
-#         assert "Shutting down monitoring server in 10 seconds..." in fake_out.getvalue()
-#         assert "Example completed." in fake_out.getvalue()
-
-#         # Assert that no errors are captured in stderr
-#         assert fake_err.getvalue() == ""
-
-#         # Assert that the correct number of tasks is submitted
-#         assert f"Task {number_of_tasks - 1}" in fake_out.getvalue()
-
-#         # Assert that the tasks complete successfully
-#         assert "Tasks completed: [True, True, ...]" in fake_out.getvalue()
-
-#         # Assert that the expected files are uploaded to the Hugging Face repository
-#         repo_id = distributaur.get_env("HF_REPO_ID")
-#         repo_files = distributaur.list_files(repo_id)
-#         assert all(f"result_{i}.txt" in repo_files for i in range(number_of_tasks))
-
-#         # Assert that the results of the tasks match the expected values
-#         for i in range(number_of_tasks):
-#             result_file = f"result_{i}.txt"
-#             result_content = distributaur.download_file(repo_id, result_file)
-#             assert result_content == f"1 plus 2 is 3"
+#     # Verify that the rented nodes were terminated
+#     mock_terminate_nodes.assert_called_once()
