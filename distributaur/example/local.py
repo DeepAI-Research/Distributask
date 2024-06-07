@@ -2,7 +2,9 @@ import os
 import sys
 import time
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
+print("PATH IS")
+print(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
 
 from distributaur.example.shared import distributaur, example_function
 
