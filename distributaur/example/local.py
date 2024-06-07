@@ -1,42 +1,16 @@
-import atexit
 import os
 import sys
 import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 
-from distributaur import Distributaur
+from distributaur.example.shared import distributaur, example_function
 
-distributaur = Distributaur()
-
-completed = False
-
-
-# This is the function that will be executed on the node
-# You can make your own function and pass in whatever arguments you want
-def example_function(index, arg1, arg2):
-
-    # As an ext
-    result = arg1 + arg2
-
-    # save the result to a file
-    with open(f"result_{index}.txt", "w") as f:
-        f.write(f"{str(arg1)} plus {str(arg2)} is {str(result)}")
-
-    # write the file to huggingface
-    distributaur.upload_file(f"result_{index}.txt")
-
-    # now destroy the file
-    os.remove(f"result_{index}.txt")
-
-    # return the result - you can get this value from the task object
-    return f"Task {index} completed. Result ({str(arg1)} + {str(arg2)}): {str(result)}"
-
-
-# Register the function with Distributaur so that it knows what to execute
-distributaur.register_function(example_function)
 
 if __name__ == "__main__":
+    completed = False
+
+    distributaur.register_function(example_function)
     # First, initialize the dataset on Huggingface
     # This is idempotent, if you run it multiple times it won't delete files that already exist
     distributaur.initialize_dataset()
