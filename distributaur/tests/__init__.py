@@ -1,1 +1,1 @@
-from .distributaur_test import *
+from .test import *

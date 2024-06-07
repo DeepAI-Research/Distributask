@@ -12,7 +12,7 @@ from huggingface_hub import HfApi
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
 from distributaur.distributaur import Distributaur
-from distributaur.tests.test_worker import example_function
+from distributaur.tests.worker import example_function
 
 
 @pytest.fixture
@@ -83,7 +83,7 @@ def test_worker_task_execution():
     worker_cmd = [
         "celery",
         "-A",
-        "distributaur.tests.test_worker",
+        "distributaur.tests.worker",
         "worker",
         "--loglevel=info",
     ]
