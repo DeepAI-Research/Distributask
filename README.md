@@ -72,7 +72,12 @@ celery -A distributaur.distributaur worker --loglevel=info
 To run an example task and see Distributaur in action, you can execute the example script provided in the project:
 
 ```bash
-python distributaur/example.py
+# To run the example task locally
+python -m distributaur.example.local
+
+# To run the example task on VAST.ai ("kitcen sink" example)
+python -m distributaur.example.distributed
+
 ```
 
 This script configures the environment, registers a sample function, dispatches a task, and monitors its execution.
