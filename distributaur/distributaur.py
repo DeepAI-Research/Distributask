@@ -15,6 +15,10 @@ from huggingface_hub import HfApi, Repository
 from requests.exceptions import HTTPError
 from celery.utils.log import get_task_logger
 
+import atexit
+from subprocess import Popen
+import sys
+
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
@@ -28,6 +32,8 @@ class Distributaur:
     redis_client: Redis = None
     registered_functions: dict = {}
     pool: ConnectionPool = None
+
+    flower_processes = []
 
     def __init__(self, config_path="config.json", env_path=".env") -> None:
         """
@@ -82,6 +88,13 @@ class Distributaur:
 
         # at exit, close app
         atexit.register(self.app.close)
+
+        def close_flower_processes():
+            for process in self.flower_processes:
+                process.terminate()
+            self.flower_processes.clear()
+
+        atexit.register(close_flower_processes)
 
         self.app.task_acks_late = True
         self.app.worker_prefetch_multiplier = 1
@@ -568,3 +581,31 @@ class Distributaur:
                 self.log(
                     f"Error terminating node: {node['instance_id']}, {str(e)}", "error"
                 )
+
+    def start_monitoring_server(
+        self, worker_name="distributaur.example.worker"
+    ) -> None:
+        """
+        Start Flower monitoring in a separate process.
+        The monitoring process will be automatically terminated when the main process exits.
+        """
+        # get the current python process
+        flower_process = Popen(
+            [
+                sys.executable,
+                "-m" "celery",
+                "-A",
+                worker_name,
+                "flower",
+            ]
+        )
+
+        self.flower_processes.append(flower_process)
+
+    def stop_monitoring_server(self) -> None:
+        """
+        Stop Flower monitoring by terminating the Flower process.
+        """
+        for process in self.flower_processes:
+            process.terminate()
+        self.flower_processes.clear()

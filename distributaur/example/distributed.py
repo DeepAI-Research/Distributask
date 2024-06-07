@@ -5,27 +5,9 @@ import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 
-from distributaur.monitoring import start_monitoring_server, stop_monitoring_server
-from distributaur import Distributaur
-
-distributaur = Distributaur()
+from distributaur.example.local import distributaur
 
 completed = False
-
-
-def handle_exit(rented_nodes):
-    global completed
-    if not completed:
-        print("Terminating nodes...")
-        distributaur.terminate_nodes(rented_nodes)
-        print("Worker process terminated.")
-        stop_monitoring_server()
-        print("Monitoring server stopped.")
-        redis_connection = distributaur.get_redis_connection()
-        redis_connection.flushall()
-        print("Redis cleared")
-        completed = True
-
 
 # This is the function that will be executed on the nodes
 # You can make your own function and pass in whatever arguments you want
@@ -100,14 +82,11 @@ if __name__ == "__main__":
     # This will return a list of node ids that you can use to execute tasks
     rented_nodes = distributaur.rent_nodes(max_price, max_nodes, docker_image)
 
-    # exit with the rented nodes
-    atexit.register(handle_exit, rented_nodes)
-
     # Print the rented nodes
     print("TOTAL RENTED NODES: ", len(rented_nodes))
     print(rented_nodes)
 
-    start_monitoring_server()
+    distributaur.start_monitoring_server()
     print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
 
     tasks = []
@@ -163,7 +142,7 @@ if __name__ == "__main__":
         user_input = input("Press q to quit monitoring: ")
         if user_input.lower() == "q":
             print("Stopping monitoring")
-            stop_monitoring_server()
+            distributaur.stop_monitoring_server()
             break
 
     # Terminate the nodes
