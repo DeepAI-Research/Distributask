@@ -12,12 +12,9 @@ distributaur = Distributaur()
 
 completed = False
 
-
-def handle_exit(rented_nodes):
+def handle_exit():
     global completed
     if not completed:
-        print("Terminating nodes...")
-        distributaur.terminate_nodes(rented_nodes)
         print("Worker process terminated.")
         stop_monitoring_server()
         print("Monitoring server stopped.")
@@ -27,15 +24,12 @@ def handle_exit(rented_nodes):
         completed = True
 
 
-# This is the function that will be executed on the nodes
+# This is the function that will be executed on the node
 # You can make your own function and pass in whatever arguments you want
 def example_function(index, arg1, arg2):
 
     # As an ext
     result = arg1 + arg2
-
-    # sleep for 5 seconds to simulate a long running task
-    # time.sleep(5)
 
     # save the result to a file
     with open(f"result_{index}.txt", "w") as f:
@@ -74,11 +68,6 @@ if __name__ == "__main__":
         raise ValueError("Vast API key not found in configuration.")
 
     job_configs = []
-
-    max_price = 0.10  # max price per node, in dollars
-    max_nodes = 3  # max number of nodes to rent
-    docker_image = "arfx/distributaur-test-worker"  # docker image to use for the worker
-
     number_of_tasks = 10
 
     function_name = "example_function"
@@ -92,20 +81,8 @@ if __name__ == "__main__":
             }
         )
 
-    # Get the job config
-    num_nodes_avail = len(distributaur.search_offers(max_price))
-    print("TOTAL NODES AVAILABLE: ", num_nodes_avail)
-
-    # Rent the nodes and get the node ids
-    # This will return a list of node ids that you can use to execute tasks
-    # rented_nodes = distributaur.rent_nodes(max_price, max_nodes, docker_image)
-
-    # exit with the rented nodes
-    # atexit.register(handle_exit, rented_nodes)
-
-    # Print the rented nodes
-    # print("TOTAL RENTED NODES: ", len(rented_nodes))
-    # print(rented_nodes)
+    # clean up processes at exit
+    atexit.register(handle_exit)
 
     start_monitoring_server()
     print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
@@ -159,13 +136,9 @@ if __name__ == "__main__":
         # sleep for a few seconds
         time.sleep(1)
 
-    while True:
-        user_input = input("Press q to quit monitoring: ")
-        if user_input.lower() == "q":
-            print("Stopping monitoring")
-            stop_monitoring_server()
-            break
-
-    # Terminate the nodes
-    print("Worker process terminated.")
-    print("Example completed.")
+    # while True:
+    #     user_input = input("Press q to quit monitoring: ")
+    #     if user_input.lower() == "q":
+    #         print("Stopping monitoring")
+    #         stop_monitoring_server()
+    #         break

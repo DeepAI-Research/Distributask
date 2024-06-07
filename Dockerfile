@@ -16,7 +16,8 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt --break-system-packages
 
 COPY distributaur/ ./distributaur/
-COPY example.py example.py
+COPY example_local.py example_local.py
+COPY example_distributed.py example_distributed.py
 COPY example_worker.py example_worker.py
 COPY config.json ./config.json
 
