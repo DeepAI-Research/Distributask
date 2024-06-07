@@ -13,11 +13,12 @@ def start_monitoring_server(task_name="example_worker") -> None:
     # get the current python process
     flower_process = Popen(
         [
-            "celery",
+            sys.executable,
+            "-m" "celery",
             "-A",
             task_name,
             "--broker=redis://default:lQXiTg6afNjUV60JN8QLAYOFYyq7YXZy@redis-17504.c289.us-west-1-2.ec2.redns.redis-cloud.com:17504/0",
-            "flower"
+            "flower",
         ]
     )
 

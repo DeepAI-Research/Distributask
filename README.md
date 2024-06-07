@@ -72,7 +72,7 @@ celery -A distributaur.distributaur worker --loglevel=info
 To run an example task and see Distributaur in action, you can execute the example script provided in the project:
 
 ```bash
-python example.py
+python distributaur/example.py
 ```
 
 This script configures the environment, registers a sample function, dispatches a task, and monitors its execution.

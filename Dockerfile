@@ -5,20 +5,20 @@ RUN apt-get update && \
     wget \
     xz-utils \
     bzip2 \
+    git \
+    git-lfs \
     python3-pip \
     python3 \
-    && apt-get install -y software-properties-common && \
-    add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && \
-    apt-get install -y python3.11 python3.11-distutils && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
-    update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
-    python3 -m pip install --upgrade pip
+    && apt-get install -y software-properties-common
 
 COPY requirements.txt .
 
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt --break-system-packages
 
 COPY distributaur/ ./distributaur/
+COPY example_local.py example_local.py
+COPY example_distributed.py example_distributed.py
+COPY example_worker.py example_worker.py
+COPY config.json ./config.json
 
-CMD ["celery", "-A", "distributaur.example", "example", "--loglevel=info", "--concurrency=1"]
+CMD ["celery", "-A", "example_worker", "worker", "--loglevel=info", "--concurrency=1"]
