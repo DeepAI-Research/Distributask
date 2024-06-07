@@ -29,7 +29,7 @@ class Distributaur:
     registered_functions: dict = {}
     pool: ConnectionPool = None
 
-    def __init__(self, config_path="../config.json", env_path=".env") -> None:
+    def __init__(self, config_path="config.json", env_path=".env") -> None:
         """
         Initialize the Config object by loading configuration from a JSON file using omegaconf
         and overriding with environment variables from a .env file.
@@ -78,7 +78,7 @@ class Distributaur:
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
-        self.app.conf.broker_pool_limit = 5
+        self.app.conf.broker_pool_limit = 1
 
         # at exit, close app
         atexit.register(self.app.close)
@@ -179,6 +179,10 @@ class Distributaur:
         Raises:
             ValueError: If the function name is not registered.
         """
+
+        print('Calling function task with args')
+        print(args_json)
+
         try:
             if func_name not in self.registered_functions:
                 raise ValueError(f"Function '{func_name}' is not registered.")

@@ -5,7 +5,7 @@ import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 
-from monitoring import start_monitoring_server, stop_monitoring_server
+from distributaur.monitoring import start_monitoring_server, stop_monitoring_server
 from distributaur import Distributaur
 
 distributaur = Distributaur()
@@ -32,7 +32,7 @@ def example_function(index, arg1, arg2):
     result = arg1 + arg2
 
     # sleep for 5 seconds to simulate a long running task
-    time.sleep(5)
+    # time.sleep(5)
 
     # save the result to a file
     with open(f"result_{index}.txt", "w") as f:
@@ -84,9 +84,8 @@ if __name__ == "__main__":
     for i in range(number_of_tasks):
         job_configs.append(
             {
-                "index": i,
                 "outputs": [f"result_{i}.txt"],
-                "task_params": {"arg1": 1, "arg2": 2},
+                "task_params": {"index": i, "arg1": 1, "arg2": 2},
             }
         )
 
@@ -96,14 +95,14 @@ if __name__ == "__main__":
 
     # Rent the nodes and get the node ids
     # This will return a list of node ids that you can use to execute tasks
-    rented_nodes = distributaur.rent_nodes(max_price, max_nodes, docker_image)
+    # rented_nodes = distributaur.rent_nodes(max_price, max_nodes, docker_image)
 
     # exit with the rented nodes
-    atexit.register(handle_exit, rented_nodes)
+    # atexit.register(handle_exit, rented_nodes)
 
     # Print the rented nodes
-    print("TOTAL RENTED NODES: ", len(rented_nodes))
-    print(rented_nodes)
+    # print("TOTAL RENTED NODES: ", len(rented_nodes))
+    # print(rented_nodes)
 
     start_monitoring_server()
     print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
@@ -137,13 +136,15 @@ if __name__ == "__main__":
                     skip_task = True
                 else:
                     print("Overwriting files")
-                    distributaur.delete_file(output)
+                    distributaur.delete_file(repo_id, output)
 
         if skip_task is False:
             print("Submitting tasks...")
 
+            params = job_config["task_params"]
+
             # queue up the function for execution on the node
-            task = distributaur.execute_function(function_name, job_config)
+            task = distributaur.execute_function(function_name, params)
 
             # add the task to the list of tasks
             tasks.append(task)
@@ -164,6 +165,6 @@ if __name__ == "__main__":
             break
 
     # Terminate the nodes
-    distributaur.terminate_nodes(rented_nodes)
+    # distributaur.terminate_nodes(rented_nodes)
     print("Worker process terminated.")
     print("Example completed.")
