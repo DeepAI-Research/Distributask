@@ -136,7 +136,6 @@ if __name__ == "__main__":
                     skip_task = True
                 else:
                     print("Overwriting files")
-                    distributaur.delete_file(repo_id, output)
 
         if skip_task is False:
             print("Submitting tasks...")

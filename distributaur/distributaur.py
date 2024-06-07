@@ -179,10 +179,6 @@ class Distributaur:
         Raises:
             ValueError: If the function name is not registered.
         """
-
-        print('Calling function task with args')
-        print(args_json)
-
         try:
             if func_name not in self.registered_functions:
                 raise ValueError(f"Function '{func_name}' is not registered.")
