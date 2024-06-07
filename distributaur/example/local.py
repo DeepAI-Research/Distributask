@@ -11,6 +11,7 @@ distributaur = Distributaur()
 
 completed = False
 
+
 # This is the function that will be executed on the node
 # You can make your own function and pass in whatever arguments you want
 def example_function(index, arg1, arg2):
