@@ -5,24 +5,11 @@ import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
 
-from distributaur.monitoring import start_monitoring_server, stop_monitoring_server
 from distributaur import Distributaur
 
 distributaur = Distributaur()
 
 completed = False
-
-def handle_exit():
-    global completed
-    if not completed:
-        print("Worker process terminated.")
-        stop_monitoring_server()
-        print("Monitoring server stopped.")
-        redis_connection = distributaur.get_redis_connection()
-        redis_connection.flushall()
-        print("Redis cleared")
-        completed = True
-
 
 # This is the function that will be executed on the node
 # You can make your own function and pass in whatever arguments you want
@@ -81,10 +68,7 @@ if __name__ == "__main__":
             }
         )
 
-    # clean up processes at exit
-    atexit.register(handle_exit)
-
-    start_monitoring_server()
+    distributaur.start_monitoring_server()
     print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
 
     tasks = []
