@@ -21,6 +21,9 @@ def handle_exit(rented_nodes):
         print("Worker process terminated.")
         stop_monitoring_server()
         print("Monitoring server stopped.")
+        redis_connection = distributaur.get_redis_connection()
+        redis_connection.flushall()
+        print("Redis cleared")
         completed = True
 
 
@@ -104,13 +107,6 @@ if __name__ == "__main__":
     # print("TOTAL RENTED NODES: ", len(rented_nodes))
     # print(rented_nodes)
 
-    # clears redis every time monitor ends
-    def clear_redis():
-        redis_connection = distributaur.get_redis_connection()
-        redis_connection.flushall()
-
-    atexit.register(clear_redis)
-
     start_monitoring_server()
     print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
 
@@ -171,6 +167,5 @@ if __name__ == "__main__":
             break
 
     # Terminate the nodes
-    # distributaur.terminate_nodes(rented_nodes)
     print("Worker process terminated.")
     print("Example completed.")
