@@ -10,7 +10,6 @@ from celery import Celery
 from redis import ConnectionPool, Redis
 from omegaconf import OmegaConf
 from dotenv import load_dotenv
-from celery.result import AsyncResult
 from huggingface_hub import HfApi, Repository
 from requests.exceptions import HTTPError
 from celery.utils.log import get_task_logger
@@ -59,6 +58,7 @@ class Distributaur:
                     "password": os.getenv("REDIS_PASSWORD"),
                     "port": os.getenv("REDIS_PORT"),
                     "username": os.getenv("REDIS_USER"),
+                    "broker_pool_limit": 1,
                 },
                 "HF_REPO_ID": os.getenv("HF_REPO_ID"),
                 "HF_TOKEN": os.getenv("HF_TOKEN"),
@@ -84,7 +84,7 @@ class Distributaur:
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
-        self.app.conf.broker_pool_limit = 1
+        self.app.conf.broker_pool_limit = self.settings.redis.broker_pool_limit
 
         # at exit, close app
         atexit.register(self.app.close)
