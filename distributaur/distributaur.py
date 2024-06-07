@@ -19,9 +19,6 @@ from subprocess import Popen
 import sys
 
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
-
-
 class Distributaur:
     """
     Configuration management class that stores settings and provides methods to update and retrieve these settings.

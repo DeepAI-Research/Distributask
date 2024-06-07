@@ -1,4 +1,4 @@
-from distributaur.distributaur import Distributaur
+from ..distributaur import Distributaur
 
 distributaur = Distributaur()
 

@@ -10,10 +10,8 @@ from unittest.mock import MagicMock, patch
 
 from huggingface_hub import HfApi
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
-
-from distributaur.distributaur import Distributaur
-from distributaur.tests.worker import example_function
+from ..distributaur import Distributaur
+from .worker import example_function
 
 
 @pytest.fixture
@@ -401,6 +399,7 @@ def test_local_example_run():
     #     result = example_function(**task_params)
 
     #     assert result == "Task 0 completed. Result (5 + 10): 15"
+
 
 # @patch("distributaur.distributaur.Distributaur.rent_nodes")
 # @patch("distributaur.distributaur.Distributaur.terminate_nodes")

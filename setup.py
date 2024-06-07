@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import os
 
 # get the cwd where the setup.py file is located
@@ -32,7 +32,7 @@ setup(
     author="Raccoon Research",
     author_email="shawmakesmagic@gmail.com",
     license="MIT",
-    packages=["distributaur"],
+    packages=find_packages(),
     install_requires=install_requires,
     classifiers=[
         "Development Status :: 4 - Beta",
