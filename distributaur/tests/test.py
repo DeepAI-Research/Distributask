@@ -8,15 +8,8 @@ from unittest.mock import MagicMock, patch
 
 from huggingface_hub import HfApi
 
-<<<<<<< HEAD
 from ..distributaur import create_from_config
 from .worker import example_test_function
-=======
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
-
-from distributaur.distributaur import Distributaur
-from distributaur.tests.worker import example_function
->>>>>>> 5c11e77 (Tests passing)
 
 
 @pytest.fixture
@@ -83,15 +76,9 @@ def test_execute_function():
 
 
 # def test_worker_task_execution():
-<<<<<<< HEAD
 #     distributaur = create_from_config()
 
 #     distributaur.register_function(example_test_function)
-=======
-#     distributaur = Distributaur()
-
-#     distributaur.register_function(example_function)
->>>>>>> 5c11e77 (Tests passing)
 
 #     worker_cmd = [
 #         "celery",
@@ -108,17 +95,10 @@ def test_execute_function():
 
 #     task_params = {"arg1": 10, "arg2": 20}
 #     print("executing task")
-<<<<<<< HEAD
 #     task = distributaur.execute_function("example_test_function", task_params)
 #     result = task.get(timeout=30)
 
 #     assert result == "+arg2=30"
-=======
-#     task = distributaur.execute_function("example_function", task_params)
-#     result = task.get(timeout=30)
-
-#     assert result == "Result: arg1=30"
->>>>>>> 5c11e77 (Tests passing)
 
 #     worker_process.terminate()
 #     worker_process.wait()
