@@ -1,11 +1,11 @@
-from ..distributaur import Distributaur
+from ..distributaur import create_from_config
 
-distributaur = Distributaur()
+distributaur = create_from_config()
 
 
 # Define and register the test_function
 def example_test_function(arg1, arg2):
-    return f"Result: arg1={arg1+arg2}"
+    return f"Result: arg1+arg2={arg1+arg2}"
 
 
 celery = distributaur.app

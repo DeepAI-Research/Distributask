@@ -31,58 +31,69 @@ class Distributaur:
 
     flower_processes = []
 
-    def __init__(self, config_path="config.json", env_path=".env") -> None:
+    def __init__(
+        self,
+        hf_repo_id=os.getenv("HF_REPO_ID"),
+        hf_token=os.getenv("HF_TOKEN"),
+        vast_api_key=os.getenv("VAST_API_KEY"),
+        redis_host=os.getenv("REDIS_HOST", "localhost"),
+        redis_password=os.getenv("REDIS_PASSWORD", ""),
+        redis_port=os.getenv("REDIS_PORT", 6379),
+        redis_username=os.getenv("REDIS_USER", "default"),
+        broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
+    ) -> None:
         """
-        Initialize the Distributaur object by loading configuration from a JSON file using omegaconf
-        and overriding with environment variables from a .env file.
+        Initialize the Distributaur object with the provided configuration parameters.
+
         Args:
-            config_path (str): Path to the configuration JSON file. Defaults to "config.json".
-            env_path (str): Path to the .env file. Defaults to ".env".
+            hf_repo_id (str): Hugging Face repository ID.
+            hf_token (str): Hugging Face API token.
+            vast_api_key (str): Vast.ai API key.
+            redis_host (str): Redis host. Defaults to "localhost".
+            redis_password (str): Redis password. Defaults to an empty string.
+            redis_port (int): Redis port. Defaults to 6379.
+            redis_username (str): Redis username. Defaults to "default".
+            broker_pool_limit (int): Celery broker pool limit. Defaults to 1.
 
         Raises:
-            FileNotFoundError: If the configuration file does not exist or any required configuration value is missing.
+            ValueError: If any of the required parameters (hf_repo_id, hf_token, vast_api_key) are not provided.
         """
-        # Load environment variables from .env file
-        load_dotenv(env_path)
+        if hf_repo_id is None:
+            raise ValueError(
+                "HF_REPO_ID is not provided to the Distributaur constructor"
+            )
 
-        # check if config_path exists
-        if not os.path.exists(config_path):
-            print(f"Creating config file at {config_path}")
-            config = {
-                "redis": {
-                    "host": os.getenv("REDIS_HOST"),
-                    "password": os.getenv("REDIS_PASSWORD"),
-                    "port": os.getenv("REDIS_PORT"),
-                    "username": os.getenv("REDIS_USER"),
-                    "broker_pool_limit": 1,
-                },
-                "HF_REPO_ID": os.getenv("HF_REPO_ID"),
-                "HF_TOKEN": os.getenv("HF_TOKEN"),
-                "VAST_API_KEY": os.getenv("VAST_API_KEY"),
-            }
+        if hf_token is None:
+            raise ValueError("HF_TOKEN is not provided to the Distributaur constructor")
 
-            # print the config
-            print(config)
+        if vast_api_key is None:
+            raise ValueError(
+                "VAST_API_KEY is not provided to the Distributaur constructor"
+            )
 
-            with open(config_path, "w") as f:
-                json.dump(config, f, indent=2)
+        if redis_host == "localhost":
+            print(
+                "WARNING: Using default Redis host 'localhost'. This is not recommended for production use and won't work for distributed rendering."
+            )
 
-        # Load configuration from JSON file
-        self.settings = OmegaConf.load(config_path)
-
-        if not all(self.settings.values()) or not all(
-            self.settings.get("redis", {"host": None}).values()
-        ):
-            raise FileNotFoundError(f"Please fill in the necessary values.")
-
-        env_dict = {key: value for key, value in os.environ.items()}
-        self.settings = OmegaConf.merge(self.settings, OmegaConf.create(env_dict))
+        self.settings = {
+            "HF_REPO_ID": hf_repo_id,
+            "HF_TOKEN": hf_token,
+            "VAST_API_KEY": vast_api_key,
+            "redis": {
+                "host": redis_host,
+                "password": redis_password,
+                "port": redis_port,
+                "username": redis_username,
+                "broker_pool_limit": broker_pool_limit,
+            },
+        }
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
-        self.app.conf.broker_pool_limit = self.settings.redis.broker_pool_limit
+        self.app.conf.broker_pool_limit = self.settings["redis"]["broker_pool_limit"]
 
-        # at exit, close app
+        # At exit, close app
         atexit.register(self.app.close)
 
         def close_flower_processes():
@@ -128,11 +139,11 @@ class Distributaur:
         Raises:
             ValueError: If any required Redis connection parameter is missing.
         """
-        redis_config = self.settings.redis
-        host = redis_config.host
-        password = redis_config.password
-        port = redis_config.port
-        username = redis_config.username
+        redis_config = self.settings["redis"]
+        host = redis_config["host"]
+        password = redis_config["password"]
+        port = redis_config["port"]
+        username = redis_config["username"]
 
         if None in [host, password, port, username]:
             raise ValueError("Missing required Redis configuration values")
@@ -622,3 +633,45 @@ class Distributaur:
         for process in self.flower_processes:
             process.terminate()
         self.flower_processes.clear()
+
+
+def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
+    # Load environment variables from .env file
+    try:
+        load_dotenv(env_path)
+    except:
+        print("No .env file found. Using system environment variables only.")
+
+    # Load configuration from JSON file
+    try:
+        settings = OmegaConf.load(config_path)
+        if not all(settings.values()) or not all(
+            settings.get("redis", {"host": None}).values()
+        ):
+            print(f"Configuration file is missing necessary values.")
+    except:
+        print(
+            "Configuration file not found. Falling back to system environment variables."
+        )
+        settings = {}
+
+    env_dict = {key: value for key, value in os.environ.items()}
+    settings = OmegaConf.merge(settings, OmegaConf.create(env_dict))
+
+    distributaur = Distributaur(
+        hf_repo_id=settings.get("HF_REPO_ID"),
+        hf_token=settings.get("HF_TOKEN"),
+        vast_api_key=settings.get("VAST_API_KEY"),
+        redis_host=settings.get("REDIS_HOST", settings.get("redis", {}).get("host")),
+        redis_password=settings.get(
+            "REDIS_PASSWORD", settings.get("redis", {}).get("password")
+        ),
+        redis_port=settings.get("REDIS_PORT", settings.get("redis", {}).get("port")),
+        redis_username=settings.get(
+            "REDIS_USER", settings.get("redis", {}).get("username")
+        ),
+        broker_pool_limit=settings.get(
+            "BROKER_POOL_LIMIT", settings.get("redis", {}).get("broker_pool_limit")
+        ),
+    )
+    return distributaur
