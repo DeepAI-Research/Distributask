@@ -2,6 +2,7 @@ import atexit
 import os
 import subprocess
 import time
+from tqdm import tqdm
 
 from .shared import distributaur, example_function
 
@@ -55,8 +56,6 @@ if __name__ == "__main__":
         print(job_config)
         print("Task params: ", job_config["task_params"])
 
-        skip_task = False
-
         # for each file in job_config["outputs"]
         for output in job_config["outputs"]:
             # check if the file exists in the dataset already
@@ -64,25 +63,17 @@ if __name__ == "__main__":
 
             # if the file exists, ask the user if they want to overwrite it
             if file_exists:
-                user_input = input(
-                    "Files already exist. Do you want to overwrite them? (y/n): "
-                )
-                if user_input.lower() == "n":
-                    print("Skipping task")
-                    skip_task = True
-                else:
-                    print("Overwriting files")
+                print("Files already exist. Do you want to overwrite them? (y/n): ")
 
-        if skip_task is False:
-            print("Submitting tasks...")
+        print("Submitting tasks...")
 
-            params = job_config["task_params"]
+        params = job_config["task_params"]
 
-            # queue up the function for execution on the node
-            task = distributaur.execute_function(example_function.__name__, params)
+        # queue up the function for execution on the node
+        task = distributaur.execute_function(example_function.__name__, params)
 
-            # add the task to the list of tasks
-            tasks.append(task)
+        # add the task to the list of tasks
+        tasks.append(task)
 
     # start the worker
     # first, try starting the docker container
@@ -149,11 +140,16 @@ if __name__ == "__main__":
 
     # Wait for the tasks to complete
     print("Tasks submitted to queue. Waiting for tasks to complete...")
-    while not all(task.ready() for task in tasks):
-        print("Tasks completed: " + str([task.ready() for task in tasks]))
-        print("Tasks remaining: " + str([task for task in tasks if not task.ready()]))
-        # sleep for a few seconds
-        time.sleep(1)
+    with tqdm(total=len(tasks), unit="task") as pbar:
+        while not all(task.ready() for task in tasks):
+            completed_tasks = sum([task.ready() for task in tasks])
+            pbar.update(completed_tasks - pbar.n)
+            print("Tasks completed: " + str([task.ready() for task in tasks]))
+            print(
+                "Tasks remaining: " + str([task for task in tasks if not task.ready()])
+            )
+            # sleep for a few seconds
+            time.sleep(1)
 
     # while True:
     #     user_input = input("Press q to quit monitoring: ")

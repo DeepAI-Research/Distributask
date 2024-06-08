@@ -1,17 +1,14 @@
-from io import StringIO
 import json
 import pytest
-import subprocess
 import time
 import os
-import sys
 import tempfile
 from unittest.mock import MagicMock, patch
 
 from huggingface_hub import HfApi
 
 from ..distributaur import Distributaur
-from .worker import example_function
+from .worker import example_test_function
 
 
 @pytest.fixture
@@ -58,18 +55,21 @@ def test_execute_function(mock_delay, mock_task_function):
 def test_register_function():
     distributaur = Distributaur()
 
-    distributaur.register_function(example_function)
-    assert "example_function" in distributaur.registered_functions
-    assert distributaur.registered_functions["example_function"] == example_function
+    distributaur.register_function(example_test_function)
+    assert "example_test_function" in distributaur.registered_functions
+    assert (
+        distributaur.registered_functions["example_test_function"]
+        == example_test_function
+    )
     print("Task registration test passed")
 
 
 def test_execute_function():
     distributaur = Distributaur()
 
-    distributaur.register_function(example_function)
+    distributaur.register_function(example_test_function)
     task_params = {"arg1": 10, "arg2": 20}
-    task = distributaur.execute_function("example_function", task_params)
+    task = distributaur.execute_function("example_test_function", task_params)
     assert task.id is not None
     print("Task execution test passed")
 
@@ -77,7 +77,7 @@ def test_execute_function():
 # def test_worker_task_execution():
 #     distributaur = Distributaur()
 
-#     distributaur.register_function(example_function)
+#     distributaur.register_function(example_test_function)
 
 #     worker_cmd = [
 #         "celery",
@@ -94,7 +94,7 @@ def test_execute_function():
 
 #     task_params = {"arg1": 10, "arg2": 20}
 #     print("executing task")
-#     task = distributaur.execute_function("example_function", task_params)
+#     task = distributaur.execute_function("example_test_function", task_params)
 #     result = task.get(timeout=30)
 
 #     assert result == "Result: arg1=30"
@@ -386,7 +386,7 @@ def test_create_instance(mock_put):
 #         "sys.stderr", new=StringIO()
 #     ) as fake_err:
 #         distributaur = Distributaur()
-        
+
 #         number_of_tasks = 5
 
 #         # Start a new process to run the local example
@@ -409,9 +409,9 @@ def test_create_instance(mock_put):
 
 # def test_distributed_example_run():
 #     distributaur = Distributaur()
-    
+
 #     number_of_tasks = 10
-    
+
 #     # Capture the stdout and stderr during the execution
 #     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
 #         "sys.stderr", new=StringIO()

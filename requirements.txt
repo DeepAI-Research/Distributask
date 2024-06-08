@@ -6,3 +6,4 @@ flower
 huggingface_hub
 python-dotenv
 omegaconf
+tqdm

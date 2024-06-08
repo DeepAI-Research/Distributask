@@ -1,5 +1,6 @@
 import os
 import time
+from tqdm import tqdm
 
 from .shared import distributaur, example_function
 
@@ -93,11 +94,16 @@ if __name__ == "__main__":
 
     # Wait for the tasks to complete
     print("Tasks submitted to queue. Waiting for tasks to complete...")
-    while not all(task.ready() for task in tasks):
-        print("Tasks completed: " + str([task.ready() for task in tasks]))
-        print("Tasks remaining: " + str([task for task in tasks if not task.ready()]))
-        # sleep for a few seconds
-        time.sleep(1)
+    with tqdm(total=len(tasks), unit="task") as pbar:
+        while not all(task.ready() for task in tasks):
+            completed_tasks = sum([task.ready() for task in tasks])
+            pbar.update(completed_tasks - pbar.n)
+            print("Tasks completed: " + str([task.ready() for task in tasks]))
+            print(
+                "Tasks remaining: " + str([task for task in tasks if not task.ready()])
+            )
+            # sleep for a few seconds
+            time.sleep(1)
 
     print("All tasks completed.")
     print("Shutting down monitoring server in 10 seconds...")
