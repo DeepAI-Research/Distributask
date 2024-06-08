@@ -1,6 +1,5 @@
 from .shared import distributaur, example_function
 
-celery = distributaur.app
+distributaur.register_function(example_function)
 
-if __name__ == "main":
-    distributaur.register_function(example_function)
+celery = distributaur.app

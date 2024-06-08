@@ -1,4 +1,6 @@
+import atexit
 import os
+import subprocess
 import time
 
 from .shared import distributaur, example_function
@@ -27,9 +29,7 @@ if __name__ == "__main__":
         raise ValueError("Vast API key not found in configuration.")
 
     job_configs = []
-    number_of_tasks = 10
-
-    function_name = "example_function"
+    number_of_tasks = 5
 
     # Submit params for the job
     for i in range(number_of_tasks):
@@ -79,10 +79,71 @@ if __name__ == "__main__":
             params = job_config["task_params"]
 
             # queue up the function for execution on the node
-            task = distributaur.execute_function(function_name, params)
+            task = distributaur.execute_function(example_function.__name__, params)
 
             # add the task to the list of tasks
             tasks.append(task)
+            
+    # start the worker
+    # first, try starting the docker container
+    # if that errors, start the worker locally
+    
+    # TODO:
+    
+    docker_installed = False
+    
+    # first, check if docker is installed
+    try:
+        subprocess.run(["docker", "--version"], check=True)
+        docker_installed = True
+    except Exception as e:
+        print("Docker is not installed. Starting worker locally.")
+        print(e)
+        
+    docker_process = None    
+        
+    if docker_installed is False:
+        print("Docker is not installed. Starting worker locally.")
+        subprocess.Popen(["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"])
+    else:
+        build_process = subprocess.Popen(
+            [
+                "docker",
+                "build",
+                "-t",
+                "distributaur-example-worker",
+                ".",
+            ]
+        )
+        build_process.wait()
+
+        docker_process = subprocess.Popen(
+            [
+                "docker",
+                "run",
+                "-e",
+                f"VAST_API_KEY={vast_api_key}",
+                "-e",
+                f"REDIS_HOST={distributaur.get_env('REDIS_HOST')}",
+                "-e",
+                f"REDIS_PORT={distributaur.get_env('REDIS_PORT')}",
+                "-e",
+                f"REDIS_PASSWORD={distributaur.get_env('REDIS_PASSWORD')}",
+                "-e",
+                f"REDIS_USER={distributaur.get_env('REDIS_USER')}",
+                "-e",
+                f"HF_TOKEN={distributaur.get_env('HF_TOKEN')}",
+                "-e",
+                f"HF_REPO_ID={repo_id}",
+                "distributaur-example-worker",
+            ]
+        )
+        
+        def kill_docker():
+            print("Killing docker container")
+            docker_process.terminate()
+        
+        atexit.register(kill_docker)
 
     # Wait for the tasks to complete
     print("Tasks submitted to queue. Waiting for tasks to complete...")
@@ -91,6 +152,8 @@ if __name__ == "__main__":
         print("Tasks remaining: " + str([task for task in tasks if not task.ready()]))
         # sleep for a few seconds
         time.sleep(1)
+        
+    
 
     # while True:
     #     user_input = input("Press q to quit monitoring: ")
