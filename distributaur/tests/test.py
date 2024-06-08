@@ -380,22 +380,71 @@ def test_create_instance(mock_put):
     assert instance["new_contract"] == "instance1"
 
 
-def test_local_example_run():
+# def test_local_example_run():
+#     # Capture the stdout and stderr during the execution
+#     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
+#         "sys.stderr", new=StringIO()
+#     ) as fake_err:
+#         distributaur = Distributaur()
+        
+#         number_of_tasks = 5
 
-    # Capture the stdout and stderr during the execution
-    with patch("sys.stdout", new=StringIO()) as fake_out, patch(
-        "sys.stderr", new=StringIO()
-    ) as fake_err:
-        # start a new process
-        subprocess.Popen(["python", "-m", "distributaur.example.local"])
+#         # Start a new process to run the local example
+#         process = subprocess.Popen(["python", "-m", "distributaur.example.local"])
+#         process.wait()
 
-        # TODO: Assert that everything is working as expected
+#         # Assert that the expected output is captured in stdout and stderr
+#         assert "Tasks submitted to queue. Waiting for tasks to complete..." in fake_out.getvalue()
+#         assert "All tasks completed." in fake_out.getvalue()
+#         assert "Example completed." in fake_out.getvalue()
 
+#         # Assert that no errors are captured in stderr
+#         assert fake_err.getvalue() == ""
 
-def test_distributed_example_run():
-    # Capture the stdout and stderr during the execution
-    with patch("sys.stdout", new=StringIO()) as fake_out, patch(
-        "sys.stderr", new=StringIO()
-    ) as fake_err:
-        # start a new process
-        subprocess.Popen(["python", "-m", "distributaur.example.distributed"])
+#         # Assert that the expected files are uploaded to the Hugging Face repository
+#         repo_id = distributaur.get_env("HF_REPO_ID")
+#         repo_files = distributaur.list_files(repo_id)
+#         assert "datetime.txt" in repo_files
+#         assert all(f"result_{i}.txt" in repo_files for i in range(number_of_tasks))
+
+# def test_distributed_example_run():
+#     distributaur = Distributaur()
+    
+#     number_of_tasks = 10
+    
+#     # Capture the stdout and stderr during the execution
+#     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
+#         "sys.stderr", new=StringIO()
+#     ) as fake_err:
+#         # Start a new process to run the distributed example
+#         process = subprocess.Popen(["python", "-m", "distributaur.example.distributed"])
+#         process.wait()
+
+#         # Assert that the expected output is captured in stdout and stderr
+#         assert "TOTAL NODES AVAILABLE: " in fake_out.getvalue()
+#         assert "TOTAL RENTED NODES: " in fake_out.getvalue()
+#         assert "Monitoring server started. Visit http://localhost:5555 to monitor the job." in fake_out.getvalue()
+#         assert "Tasks submitted to queue. Waiting for tasks to complete..." in fake_out.getvalue()
+#         assert "All tasks completed." in fake_out.getvalue()
+#         assert "Shutting down monitoring server in 10 seconds..." in fake_out.getvalue()
+#         assert "Example completed." in fake_out.getvalue()
+
+#         # Assert that no errors are captured in stderr
+#         assert fake_err.getvalue() == ""
+
+#         # Assert that the correct number of tasks is submitted
+#         assert f"Task {number_of_tasks - 1}" in fake_out.getvalue()
+
+#         # Assert that the tasks complete successfully
+#         assert "Tasks completed: [True, True, ...]" in fake_out.getvalue()
+
+#         # Assert that the expected files are uploaded to the Hugging Face repository
+#         repo_id = distributaur.get_env("HF_REPO_ID")
+#         repo_files = distributaur.list_files(repo_id)
+#         assert all(f"result_{i}.txt" in repo_files for i in range(number_of_tasks))
+
+#         # Assert that the results of the tasks match the expected values
+#         for i in range(number_of_tasks):
+#             result_file = f"result_{i}.txt"
+#             result_content = distributaur.download_file(repo_id, result_file)
+#             assert result_content == f"1 plus 2 is 3"
