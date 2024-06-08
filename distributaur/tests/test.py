@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from huggingface_hub import HfApi
 
-from ..distributaur import Distributaur
+from ..distributaur import create_from_config
 from .worker import example_test_function
 
 
@@ -24,7 +24,7 @@ def test_register_function(mock_task_function):
     Test the register_function function.
     """
     mock_task_function.__name__ = "mock_task"  # Set the __name__ attribute
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     decorated_task = distributaur.register_function(mock_task_function)
 
     assert callable(decorated_task)
@@ -42,7 +42,7 @@ def test_execute_function(mock_delay, mock_task_function):
     Test the execute_function function.
     """
     mock_task_function.__name__ = "mock_task"  # Set the __name__ attribute
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     distributaur.register_function(mock_task_function)
 
     params = {"arg1": 1, "arg2": 2}
@@ -53,7 +53,7 @@ def test_execute_function(mock_delay, mock_task_function):
 
 
 def test_register_function():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
 
     distributaur.register_function(example_test_function)
     assert "example_test_function" in distributaur.registered_functions
@@ -65,7 +65,7 @@ def test_register_function():
 
 
 def test_execute_function():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
 
     distributaur.register_function(example_test_function)
     task_params = {"arg1": 10, "arg2": 20}
@@ -75,7 +75,7 @@ def test_execute_function():
 
 
 # def test_worker_task_execution():
-#     distributaur = Distributaur()
+#     distributaur = create_from_config()
 
 #     distributaur.register_function(example_test_function)
 
@@ -97,7 +97,7 @@ def test_execute_function():
 #     task = distributaur.execute_function("example_test_function", task_params)
 #     result = task.get(timeout=30)
 
-#     assert result == "Result: arg1=30"
+#     assert result == "+arg2=30"
 
 #     worker_process.terminate()
 #     worker_process.wait()
@@ -106,7 +106,7 @@ def test_execute_function():
 
 
 def test_task_status_update():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     redis_client = distributaur.get_redis_connection()
 
     task_status_keys = redis_client.keys("task_status:*")
@@ -127,7 +127,7 @@ def test_task_status_update():
 
 
 def test_initialize_repo():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
 
     # Initialize the repository
     distributaur.initialize_dataset()
@@ -156,7 +156,7 @@ def test_initialize_repo():
 
 
 def test_upload_directory():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     distributaur.initialize_dataset()
     # Create a temporary directory for testing
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -190,7 +190,7 @@ def test_upload_directory():
 
 
 def test_delete_file():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
@@ -226,7 +226,7 @@ def test_delete_file():
 
 
 def test_file_exists():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
@@ -259,7 +259,7 @@ def test_file_exists():
 
 
 def test_list_files():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
@@ -296,7 +296,7 @@ def test_list_files():
 
 @pytest.fixture(scope="module")
 def rented_nodes():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
 
     max_price = 0.5
     max_nodes = 1
@@ -314,18 +314,18 @@ def test_rent_run_terminate(rented_nodes):
 
 
 def test_get_redis_url():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     redis_url = distributaur.get_redis_url()
 
     assert redis_url.startswith("redis://")
-    assert distributaur.settings.redis.username in redis_url
-    assert distributaur.settings.redis.password in redis_url
-    assert distributaur.settings.redis.host in redis_url
-    assert str(distributaur.settings.redis.port) in redis_url
+    assert distributaur.settings["redis"]["username"] in redis_url
+    assert distributaur.settings["redis"]["password"] in redis_url
+    assert distributaur.settings["redis"]["host"] in redis_url
+    assert str(distributaur.settings["redis"]["port"]) in redis_url
 
 
 def test_get_redis_connection_force_new():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     redis_client1 = distributaur.get_redis_connection()
     redis_client2 = distributaur.get_redis_connection(force_new=True)
 
@@ -333,7 +333,7 @@ def test_get_redis_connection_force_new():
 
 
 def test_get_redis_connection_force_new():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     redis_client1 = distributaur.get_redis_connection()
     redis_client2 = distributaur.get_redis_connection(force_new=True)
 
@@ -341,7 +341,7 @@ def test_get_redis_connection_force_new():
 
 
 def test_get_env_with_default():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     default_value = "default"
     value = distributaur.get_env("NON_EXISTENT_KEY", default_value)
 
@@ -350,7 +350,7 @@ def test_get_env_with_default():
 
 @patch("requests.get")
 def test_search_offers(mock_get):
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     max_price = 1.0
 
     mock_response = MagicMock()
@@ -366,7 +366,7 @@ def test_search_offers(mock_get):
 
 @patch("requests.put")
 def test_create_instance(mock_put):
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     offer_id = "offer1"
     image = "test_image"
 
@@ -385,7 +385,7 @@ def test_create_instance(mock_put):
 #     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
 #         "sys.stderr", new=StringIO()
 #     ) as fake_err:
-#         distributaur = Distributaur()
+#         distributaur = create_from_config()
 
 #         number_of_tasks = 5
 
@@ -408,7 +408,7 @@ def test_create_instance(mock_put):
 #         assert all(f"result_{i}.txt" in repo_files for i in range(number_of_tasks))
 
 # def test_distributed_example_run():
-#     distributaur = Distributaur()
+#     distributaur = create_from_config()
 
 #     number_of_tasks = 10
 
