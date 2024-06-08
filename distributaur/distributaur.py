@@ -33,15 +33,14 @@ class Distributaur:
 
     def __init__(self, config_path="config.json", env_path=".env") -> None:
         """
-        Initialize the Config object by loading configuration from a JSON file using omegaconf
+        Initialize the Distributaur object by loading configuration from a JSON file using omegaconf
         and overriding with environment variables from a .env file.
-
         Args:
             config_path (str): Path to the configuration JSON file. Defaults to "config.json".
             env_path (str): Path to the .env file. Defaults to ".env".
 
         Raises:
-            FileNotFoundError: If any required configuration value is missing.
+            FileNotFoundError: If the configuration file does not exist or any required configuration value is missing.
         """
         # Load environment variables from .env file
         load_dotenv(env_path)
@@ -188,6 +187,7 @@ class Distributaur:
 
         Raises:
             ValueError: If the function name is not registered.
+            Exception: If an error occurs during the execution of the function. The task will retry in this case.
         """
         try:
             if func_name not in self.registered_functions:
@@ -221,13 +221,12 @@ class Distributaur:
     def execute_function(self, func_name: str, args: dict) -> Celery.AsyncResult:
         """
         Execute a registered function as a Celery task with provided arguments.
-
         Args:
             func_name (str): The name of the function to execute.
             args (dict): Arguments to pass to the function.
 
         Returns:
-            AsyncResult: An object representing the asynchronous result of the task.
+            celery.result.AsyncResult: An object representing the asynchronous result of the task.
         """
         args_json = json.dumps(args)
         return self.call_function_task.delay(func_name, args_json)
@@ -292,6 +291,10 @@ class Distributaur:
 
         Args:
             file_path (str): The path of the file to upload.
+
+        Raises:
+            Exception: If an error occurs during the upload process.
+
         """
         hf_token = self.settings.get("HF_TOKEN")
         repo_id = self.settings.get("HF_REPO_ID")
@@ -323,6 +326,9 @@ class Distributaur:
         Args:
             output_dir (str): The local directory containing the files to upload.
             repo_dir (str): The directory path in the repository where the files will be uploaded.
+
+        Raises:
+            Exception: If an error occurs during the upload process for any file.
         """
         hf_token = self.settings.get("HF_TOKEN")
         repo_id = self.settings.get("HF_REPO_ID")
@@ -363,6 +369,10 @@ class Distributaur:
         Args:
             repo_id (str): The ID of the repository.
             path_in_repo (str): The path of the file to delete within the repository.
+
+        Raises:
+            Exception: If an error occurs during the deletion process.
+
         """
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
@@ -391,6 +401,9 @@ class Distributaur:
 
         Returns:
             bool: True if the file exists in the repository, False otherwise.
+
+        Raises:
+            Exception: If an error occurs while checking the existence of the file.
         """
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
@@ -416,6 +429,9 @@ class Distributaur:
 
         Returns:
             list: A list of file paths in the repository.
+
+        Raises:
+            Exception: If an error occurs while retrieving the list of files.
         """
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)

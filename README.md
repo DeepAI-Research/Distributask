@@ -17,12 +17,6 @@ pip install distributaur
 
 # Development
 
-### Prerequisites
-
-- Python 3.8 or newer (tested on 3.10)
-- Redis server
-- Celery
-
 ### Setup
 
 Clone the repository and navigate to the project directory:
@@ -54,18 +48,11 @@ REDIS_PORT=6379
 REDIS_USER=user
 REDIS_PASSWORD=password
 VAST_API_KEY=your_vast_api_key
+HF_TOKEN=hf_token
+HF_REPO_ID=YourHFRepo/test_dataset
 ```
 
 ## Getting Started
-
-### Starting the Worker
-
-To start processing tasks, you need to run a worker. You can start a worker using the provided script:
-
-```bash
-sh scripts/kill_redis_connections.sh  # Optional: to clear previous Redis connections
-celery -A distributaur.distributaur worker --loglevel=info
-```
 
 ### Running an Example Task
 
@@ -86,17 +73,38 @@ This script configures the environment, registers a sample function, dispatches 
 
 ### Core Functionality
 
-- **register_function(func)**: Decorator to register a function that can be called as a task.
-- **execute_function(func_name, args)**: Dispatch a registered function as a task with specified arguments.
+- **register_function(func: callable) -> callable**: Decorator to register a function so that it can be invoked as a task.
+- **execute_function(func_name: str, args: dict) -> Celery.AsyncResult**: Execute a registered function as a Celery task with provided arguments.
+
+### Configuration Management
+
+- **get_env(key: str, default: any = None) -> any**: Retrieve a value from the configuration settings, with an optional default if the key is not found.
 
 ### Task Management
 
-- **update_function_status(task_id, status)**: Update the status of a task in Redis.
+- **update_function_status(task_id: str, status: str) -> None**: Update the status of a function task in Redis.
+
+### Hugging Face Dataset Management
+
+- **initialize_dataset(**kwargs) -> None**: Initialize a Hugging Face repository if it doesn't exist.
+- **upload_file(file_path: str) -> None**: Upload a file to a Hugging Face repository.
+- **upload_directory(output_dir: str, repo_dir: str) -> None**: Upload the rendered outputs to a Hugging Face repository.
+- **delete_file(repo_id: str, path_in_repo: str) -> None**: Delete a file from a Hugging Face repository.
+- **file_exists(repo_id: str, path_in_repo: str) -> bool**: Check if a file exists in a Hugging Face repository.
+- **list_files(repo_id: str) -> list**: Get a list of files from a Hugging Face repository.
 
 ### VAST.ai Integration
 
-- **rent_nodes(max_price, max_nodes, image, api_key)**: Rent nodes from VAST.ai based on specified criteria.
-- **terminate_nodes(nodes)**: Terminate rented nodes on VAST.ai.
+- **search_offers(max_price: float) -> List[Dict]**: Search for available offers on the Vast.ai platform.
+- **create_instance(offer_id: str, image: str) -> Dict**: Create an instance on the Vast.ai platform.
+- **destroy_instance(instance_id: str) -> Dict**: Destroy an instance on the Vast.ai platform.
+- **rent_nodes(max_price: float, max_nodes: int, image: str) -> List[Dict]**: Rent nodes on the Vast.ai platform.
+- **terminate_nodes(nodes: List[Dict]) -> None**: Terminate the rented nodes.
+
+### Monitoring
+
+- **start_monitoring_server(worker_name: str = "distributaur.example.worker") -> None**: Start Flower monitoring in a separate process.
+- **stop_monitoring_server() -> None**: Stop Flower monitoring by terminating the Flower process.
 
 ## Contributing
 

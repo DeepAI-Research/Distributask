@@ -72,8 +72,6 @@ if __name__ == "__main__":
         print(job_config)
         print("Task params: ", job_config["task_params"])
 
-        skip_task = False
-
         # for each file in job_config["outputs"]
         for output in job_config["outputs"]:
             # check if the file exists in the dataset already
@@ -81,25 +79,17 @@ if __name__ == "__main__":
 
             # if the file exists, ask the user if they want to overwrite it
             if file_exists:
-                user_input = input(
-                    "Files already exist. Do you want to overwrite them? (y/n): "
-                )
-                if user_input.lower() == "n":
-                    print("Skipping task")
-                    skip_task = True
-                else:
-                    print("Overwriting files")
+                print("Files already exist. Do you want to overwrite them? (y/n): ")
 
-        if skip_task is False:
-            print("Submitting tasks...")
+        print("Submitting tasks...")
 
-            params = job_config["task_params"]
+        params = job_config["task_params"]
 
-            # queue up the function for execution on the node
-            task = distributaur.execute_function(function_name, params)
+        # queue up the function for execution on the node
+        task = distributaur.execute_function(function_name, params)
 
-            # add the task to the list of tasks
-            tasks.append(task)
+        # add the task to the list of tasks
+        tasks.append(task)
 
     # Wait for the tasks to complete
     print("Tasks submitted to queue. Waiting for tasks to complete...")
@@ -109,13 +99,8 @@ if __name__ == "__main__":
         # sleep for a few seconds
         time.sleep(1)
 
-    while True:
-        user_input = input("Press q to quit monitoring: ")
-        if user_input.lower() == "q":
-            print("Stopping monitoring")
-            distributaur.stop_monitoring_server()
-            break
-
-    # Terminate the nodes
-    print("Worker process terminated.")
+    print("All tasks completed.")
+    print("Shutting down monitoring server in 10 seconds...")
+    time.sleep(10)
+    distributaur.stop_monitoring_server()
     print("Example completed.")
