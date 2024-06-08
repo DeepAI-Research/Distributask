@@ -83,15 +83,15 @@ if __name__ == "__main__":
 
             # add the task to the list of tasks
             tasks.append(task)
-            
+
     # start the worker
     # first, try starting the docker container
     # if that errors, start the worker locally
-    
+
     # TODO:
-    
+
     docker_installed = False
-    
+
     # first, check if docker is installed
     try:
         subprocess.run(["docker", "--version"], check=True)
@@ -99,12 +99,14 @@ if __name__ == "__main__":
     except Exception as e:
         print("Docker is not installed. Starting worker locally.")
         print(e)
-        
-    docker_process = None    
-        
+
+    docker_process = None
+
     if docker_installed is False:
         print("Docker is not installed. Starting worker locally.")
-        subprocess.Popen(["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"])
+        subprocess.Popen(
+            ["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"]
+        )
     else:
         build_process = subprocess.Popen(
             [
@@ -138,11 +140,11 @@ if __name__ == "__main__":
                 "distributaur-example-worker",
             ]
         )
-        
+
         def kill_docker():
             print("Killing docker container")
             docker_process.terminate()
-        
+
         atexit.register(kill_docker)
 
     # Wait for the tasks to complete
@@ -152,8 +154,6 @@ if __name__ == "__main__":
         print("Tasks remaining: " + str([task for task in tasks if not task.ready()]))
         # sleep for a few seconds
         time.sleep(1)
-        
-    
 
     # while True:
     #     user_input = input("Press q to quit monitoring: ")

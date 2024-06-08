@@ -388,9 +388,10 @@ def test_local_example_run():
     ) as fake_err:
         # start a new process
         subprocess.Popen(["python", "-m", "distributaur.example.local"])
-        
+
         # TODO: Assert that everything is working as expected
-        
+
+
 def test_distributed_example_run():
     # Capture the stdout and stderr during the execution
     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
