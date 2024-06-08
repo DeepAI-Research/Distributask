@@ -98,10 +98,6 @@ if __name__ == "__main__":
         while not all(task.ready() for task in tasks):
             completed_tasks = sum([task.ready() for task in tasks])
             pbar.update(completed_tasks - pbar.n)
-            print("Tasks completed: " + str([task.ready() for task in tasks]))
-            print(
-                "Tasks remaining: " + str([task for task in tasks if not task.ready()])
-            )
             # sleep for a few seconds
             time.sleep(1)
 
