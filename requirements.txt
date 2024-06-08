@@ -5,5 +5,5 @@ redis
 flower
 huggingface_hub
 python-dotenv
-omegaconf
+omegaconf==2.0.5
 tqdm
