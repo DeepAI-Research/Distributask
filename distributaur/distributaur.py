@@ -521,18 +521,18 @@ class Distributaur:
         json_blob = {
             "client_id": "me",
             "image": image,
-            "env": "",
-            "disk": 16,  # Set a non-zero value for disk
-            "onstart": f"export PATH=$PATH:/ &&  cd ../ && REDIS_HOST={self.get_env('REDIS_HOST')} REDIS_PORT={self.get_env('REDIS_PORT')} REDIS_USER={self.get_env('REDIS_USER')} REDIS_PASSWORD={self.get_env('REDIS_PASSWORD')} HF_TOKEN={self.get_env('HF_TOKEN')} HF_REPO_ID={self.get_env('HF_REPO_ID')} VAST_API_KEY={self.get_env('VAST_API_KEY')} celery -A {module_name} worker --loglevel=info",
-            "runtype": "ssh ssh_proxy",
-            "image_login": None,
-            "python_utf8": False,
-            "lang_utf8": False,
-            "use_jupyter_lab": False,
-            "jupyter_dir": None,
-            "create_from": "",
-            "template_hash_id": "250671155ccbc28d0609af524b75a80e",
-            "template_id": 108305,
+            "env": {
+                "REDIS_HOST": self.settings['redis']['host'],
+                "REDIS_PORT": self.settings['redis']['port'],
+                "REDIS_USER": self.settings['redis']['username'],
+                "REDIS_PASSWORD": self.settings['redis']['password'],
+                "HF_TOKEN": self.get_env('HF_TOKEN'),
+                "HF_REPO_ID": self.get_env('HF_REPO_ID'),
+                "VAST_API_KEY": self.get_env('VAST_API_KEY')
+                },
+            "disk": 32,  # Set a non-zero value for disk
+            "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel=info",
+            "runtype": "ssh ssh_proxy"
         }
         url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={self.get_env('VAST_API_KEY')}"
         headers = {"Authorization": f"Bearer {self.get_env('VAST_API_KEY')}"}
