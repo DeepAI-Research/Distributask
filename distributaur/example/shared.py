@@ -1,8 +1,8 @@
 import os
 
-from ..distributaur import Distributaur
+from ..distributaur import create_from_config
 
-distributaur = Distributaur()
+distributaur = create_from_config()
 
 
 # This is the function that will be executed on the nodes
