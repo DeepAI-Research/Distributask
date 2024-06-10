@@ -68,7 +68,7 @@ To run an example task and see Distributaur in action, you can execute the examp
 # To run the example task locally
 python -m distributaur.example.local
 
-# To run the example task on VAST.ai ("kitcen sink" example)
+# To run the example task on VAST.ai ("kitchen sink" example)
 python -m distributaur.example.distributed
 
 ```
