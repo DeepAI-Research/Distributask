@@ -32,7 +32,7 @@ if __name__ == "__main__":
     max_price = 0.10  # max price per node, in dollars
     max_nodes = 1  # max number of nodes to rent
     docker_image = "arfx/distributaur-test-worker"  # docker image to use for the worker
-
+    module_name = "distributaur.example.worker"
     number_of_tasks = 10
 
     function_name = "example_function"
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     # Rent the nodes and get the node ids
     # This will return a list of node ids that you can use to execute tasks
-    rented_nodes = distributaur.rent_nodes(max_price, max_nodes, docker_image)
+    rented_nodes = distributaur.rent_nodes(max_price, max_nodes, docker_image, module_name)
 
     # Print the rented nodes
     print("TOTAL RENTED NODES: ", len(rented_nodes))

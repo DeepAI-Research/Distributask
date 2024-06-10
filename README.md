@@ -96,9 +96,9 @@ This script configures the environment, registers a sample function, dispatches 
 ### VAST.ai Integration
 
 - **search_offers(max_price: float) -> List[Dict]**: Search for available offers on the Vast.ai platform.
-- **create_instance(offer_id: str, image: str) -> Dict**: Create an instance on the Vast.ai platform.
+- **create_instance(offer_id: str, image: str, module_name: str) -> Dict**: Create an instance on the Vast.ai platform.
 - **destroy_instance(instance_id: str) -> Dict**: Destroy an instance on the Vast.ai platform.
-- **rent_nodes(max_price: float, max_nodes: int, image: str) -> List[Dict]**: Rent nodes on the Vast.ai platform.
+- **rent_nodes(max_price: float, max_nodes: int, image: str, module_name: str) -> List[Dict]**: Rent nodes on the Vast.ai platform.
 - **terminate_nodes(nodes: List[Dict]) -> None**: Terminate the rented nodes.
 
 ### Monitoring

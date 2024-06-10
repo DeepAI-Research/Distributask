@@ -498,13 +498,14 @@ class Distributaur:
             )
             raise
 
-    def create_instance(self, offer_id: str, image: str) -> Dict:
+    def create_instance(self, offer_id: str, image: str, module_name: str) -> Dict:
         """
         Create an instance on the Vast.ai platform.
 
         Args:
             offer_id (str): The ID of the offer to create the instance from.
-            image (str): The image to use for the instance.
+            image (str): The image to use for the instance. (example: RaccoonResearch/distributaur-test-worker)
+            module_name (str): The name of the module to run on the instance (example: distributaur.example.worker)
 
         Returns:
             Dict: A dictionary representing the created instance.
@@ -522,7 +523,7 @@ class Distributaur:
             "image": image,
             "env": "",
             "disk": 16,  # Set a non-zero value for disk
-            "onstart": f"export PATH=$PATH:/ &&  cd ../ && REDIS_HOST={self.get_env('REDIS_HOST')} REDIS_PORT={self.get_env('REDIS_PORT')} REDIS_USER={self.get_env('REDIS_USER')} REDIS_PASSWORD={self.get_env('REDIS_PASSWORD')} HF_TOKEN={self.get_env('HF_TOKEN')} HF_REPO_ID={self.get_env('HF_REPO_ID')} VAST_API_KEY={self.get_env('VAST_API_KEY')} celery -A distributaur.worker worker --loglevel=info",
+            "onstart": f"export PATH=$PATH:/ &&  cd ../ && REDIS_HOST={self.get_env('REDIS_HOST')} REDIS_PORT={self.get_env('REDIS_PORT')} REDIS_USER={self.get_env('REDIS_USER')} REDIS_PASSWORD={self.get_env('REDIS_PASSWORD')} HF_TOKEN={self.get_env('HF_TOKEN')} HF_REPO_ID={self.get_env('HF_REPO_ID')} VAST_API_KEY={self.get_env('VAST_API_KEY')} celery -A {module_name} worker --loglevel=info",
             "runtype": "ssh ssh_proxy",
             "image_login": None,
             "python_utf8": False,
@@ -561,7 +562,7 @@ class Distributaur:
         response = requests.delete(url, headers=headers)
         return response.json()
 
-    def rent_nodes(self, max_price: float, max_nodes: int, image: str) -> List[Dict]:
+    def rent_nodes(self, max_price: float, max_nodes: int, image: str, module_name: str) -> List[Dict]:
         """
         Rent nodes on the Vast.ai platform.
 
@@ -579,7 +580,7 @@ class Distributaur:
             if len(rented_nodes) >= max_nodes:
                 break
             try:
-                instance = self.create_instance(offer["id"], image)
+                instance = self.create_instance(offer["id"], image, module_name)
                 rented_nodes.append(
                     {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
                 )

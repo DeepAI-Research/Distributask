@@ -301,8 +301,9 @@ def rented_nodes():
     max_price = 0.5
     max_nodes = 1
     image = "arfx/distributaur-worker:latest"
+    module_name = "distributaur.example.worker"
 
-    nodes = distributaur.rent_nodes(max_price, max_nodes, image)
+    nodes = distributaur.rent_nodes(max_price, max_nodes, image, module_name)
     yield nodes
 
     distributaur.terminate_nodes(nodes)
@@ -369,13 +370,14 @@ def test_create_instance(mock_put):
     distributaur = create_from_config()
     offer_id = "offer1"
     image = "test_image"
+    module_name = "distributaur.example.worker"
 
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"new_contract": "instance1"}
     mock_put.return_value = mock_response
 
-    instance = distributaur.create_instance(offer_id, image)
+    instance = distributaur.create_instance(offer_id, image, module_name)
 
     assert instance["new_contract"] == "instance1"
 
