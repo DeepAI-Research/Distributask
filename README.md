@@ -86,7 +86,7 @@ This script configures the environment, registers a sample function, dispatches 
 
 ### Hugging Face Dataset Management
 
-- **initialize_dataset(**kwargs) -> None**: Initialize a Hugging Face repository if it doesn't exist.
+- **initialize_dataset(\*\*kwargs) -> None**: Initialize a Hugging Face repository if it doesn't exist.
 - **upload_file(file_path: str) -> None**: Upload a file to a Hugging Face repository.
 - **upload_directory(output_dir: str, repo_dir: str) -> None**: Upload the rendered outputs to a Hugging Face repository.
 - **delete_file(repo_id: str, path_in_repo: str) -> None**: Delete a file from a Hugging Face repository.
