@@ -34,6 +34,7 @@ class Distributaur:
         redis_port=os.getenv("REDIS_PORT", 6379),
         redis_username=os.getenv("REDIS_USER", "default"),
         broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
+        max_connections=os.getenv("MAX_CONNECTIONS", 1),
     ) -> None:
         """
         Initialize the Distributaur object with the provided configuration parameters.
@@ -47,6 +48,7 @@ class Distributaur:
             redis_port (int): Redis port. Defaults to 6379.
             redis_username (str): Redis username. Defaults to "default".
             broker_pool_limit (int): Celery broker pool limit. Defaults to 1.
+            max_connections (int): Maximum number of connections to the Redis server. Defaults to 10.
 
         Raises:
             ValueError: If any of the required parameters (hf_repo_id, hf_token, vast_api_key) are not provided.

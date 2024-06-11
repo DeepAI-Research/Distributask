@@ -52,38 +52,33 @@ if __name__ == "__main__":
             }
         )
 
-    # Get the job config
-    num_nodes_avail = len(distributaur.search_offers(args.max_price))
-    print("TOTAL NODES AVAILABLE: ", num_nodes_avail)
-
     # Rent the nodes and get the node ids
     # This will return a list of node ids that you can use to execute tasks
+    print("RENTING NODES...")
     rented_nodes = distributaur.rent_nodes(args.max_price, args.max_nodes, args.docker_image, args.module_name)
 
-    # Print the rented nodes
-    print("Total nodes rented: ", len(rented_nodes))
+    print("TOTAL RENTED NODES: ", len(rented_nodes))
+    print(rented_nodes)
 
     tasks = []
 
     repo_id = distributaur.get_env("HF_REPO_ID")
 
-    print("Submitting tasks...")
-    # Submit the tasks
-    # For each task, check if the output files already exist
+    # Submit the tasks to the queue for the worker nodes to execute
     for i in range(args.number_of_tasks):
         job_config = job_configs[i]
         # print(f"Task {i} submitted")
         # print(job_config)
 
-    print("Submitting tasks...")
+        print("Submitting tasks...")
 
-    params = job_config["task_params"]
+        params = job_config["task_params"]
 
-    # queue up the function for execution on the node
-    task = distributaur.execute_function(example_function.__name__, params)
+        # queue up the function for execution on the node
+        task = distributaur.execute_function(example_function.__name__, params)
 
-    # add the task to the list of tasks
-    tasks.append(task)
+        # add the task to the list of tasks
+        tasks.append(task)
 
     prev_tasks = 0
     first_task_done = False
