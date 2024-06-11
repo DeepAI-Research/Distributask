@@ -43,8 +43,6 @@ if __name__ == "__main__":
 
     job_configs = []
 
-    function_name = "example_function"
-
     # Submit params for the job
     for i in range(args.number_of_tasks):
         job_configs.append(
@@ -78,21 +76,12 @@ if __name__ == "__main__":
         print(job_config)
         print("Task params: ", job_config["task_params"])
 
-        # for each file in job_config["outputs"]
-        for output in job_config["outputs"]:
-            # check if the file exists in the dataset already
-            file_exists = distributaur.file_exists(repo_id, output)
-
-            # if the file exists, ask the user if they want
-            if file_exists:
-                print("Files already exist. Overwriting.")
-
     print("Submitting tasks...")
 
     params = job_config["task_params"]
 
     # queue up the function for execution on the node
-    task = distributaur.execute_function(function_name, params)
+    task = distributaur.execute_function(example_function.__name__, params)
 
     # add the task to the list of tasks
     tasks.append(task)
@@ -105,3 +94,5 @@ if __name__ == "__main__":
             pbar.update(completed_tasks - pbar.n)
 
     print("All tasks completed.")
+    print("Stopping the nodes in 2 minutes...")
+    time.sleep(120)

@@ -1,6 +1,6 @@
 import os
-import sys
 import json
+import time
 import requests
 from typing import Dict, List
 import atexit
@@ -13,11 +13,6 @@ from dotenv import load_dotenv
 from huggingface_hub import HfApi, Repository
 from requests.exceptions import HTTPError
 from celery.utils.log import get_task_logger
-
-import atexit
-from subprocess import Popen
-import sys
-
 
 class Distributaur:
     """
@@ -301,8 +296,6 @@ class Distributaur:
         hf_token = self.settings.get("HF_TOKEN")
         repo_id = self.settings.get("HF_REPO_ID")
 
-        self.initialize_dataset()
-
         api = HfApi(token=hf_token)
 
         try:
@@ -334,8 +327,6 @@ class Distributaur:
         """
         hf_token = self.settings.get("HF_TOKEN")
         repo_id = self.settings.get("HF_REPO_ID")
-
-        self.initialize_dataset()
 
         api = HfApi(token=hf_token)
 
@@ -568,13 +559,25 @@ class Distributaur:
         """
         rented_nodes: List[Dict] = []
         while len(rented_nodes) < max_nodes:
-            offers = self.search_offers(max_price)
+            search_retries = 10
+            while search_retries > 0:
+                try:
+                    offers = self.search_offers(max_price)
+                    break
+                except Exception as e:
+                    self.log(f"Error searching for offers: {str(e)} - retrying in 5 seconds...", "error")
+                    search_retries -= 1
+                    # sleep for 5 seconds before retrying
+                    time.sleep(5)
+                    continue
+            
             offers = sorted(offers, key=lambda offer: offer["dph_total"])  # Sort offers by price, lowest to highest
             for offer in offers:
                 if len(rented_nodes) >= max_nodes:
                     break
                 try:
                     instance = self.create_instance(offer["id"], image, module_name)
+                    atexit.register(self.destroy_instance, instance["new_contract"])
                     rented_nodes.append(
                         {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
                     )
@@ -585,7 +588,6 @@ class Distributaur:
                 # If the loop completes without breaking, all offers have been tried
                 self.log("No more offers available - stopping node rental", "warning")
                 break
-        atexit.register(self.terminate_nodes, rented_nodes)
         return rented_nodes
 
     def terminate_nodes(self, nodes: List[Dict]) -> None:
