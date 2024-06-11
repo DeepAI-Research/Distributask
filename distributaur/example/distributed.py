@@ -1,11 +1,24 @@
 import os
 import time
-from distributaur.example.shared import distributaur, example_function
+import argparse
 from tqdm import tqdm
 
 from .shared import distributaur, example_function
 
 if __name__ == "__main__":
+    # Create an ArgumentParser object
+    parser = argparse.ArgumentParser(description="Distributaur example script")
+
+    # Add arguments with default values
+    parser.add_argument("--max_price", type=float, default=0.15, help="Max price per node, in dollars (default: 0.25)")
+    parser.add_argument("--max_nodes", type=int, default=1, help="Max number of nodes to rent (default: 1)")
+    parser.add_argument("--docker_image", type=str, default="arfx/distributaur-test-worker", help="Docker image to use for the worker (default: arfx/distributaur-test-worker)")
+    parser.add_argument("--module_name", type=str, default="distributaur.example.worker", help="Module name (default: distributaur.example.worker)")
+    parser.add_argument("--number_of_tasks", type=int, default=10, help="Number of tasks (default: 10)")
+
+    # Parse the arguments
+    args = parser.parse_args()
+
     completed = False
 
     distributaur.register_function(example_function)
@@ -30,16 +43,8 @@ if __name__ == "__main__":
 
     job_configs = []
 
-    max_price = 0.10  # max price per node, in dollars
-    max_nodes = 3  # max number of nodes to rent
-    docker_image = "arfx/distributaur-test-worker"  # docker image to use for the worker
-    module_name = "distributaur.example.worker"
-    number_of_tasks = 10
-
-    function_name = "example_function"
-
     # Submit params for the job
-    for i in range(number_of_tasks):
+    for i in range(args.number_of_tasks):
         job_configs.append(
             {
                 "outputs": [f"result_{i}.txt"],
@@ -47,20 +52,13 @@ if __name__ == "__main__":
             }
         )
 
-    # Get the job config
-    num_nodes_avail = len(distributaur.search_offers(max_price))
-    print("Total nodes available: ", num_nodes_avail)
-
     # Rent the nodes and get the node ids
     # This will return a list of node ids that you can use to execute tasks
-    rented_nodes = distributaur.rent_nodes(max_price, max_nodes, docker_image, module_name)
+    print("RENTING NODES...")
+    rented_nodes = distributaur.rent_nodes(args.max_price, args.max_nodes, args.docker_image, args.module_name)
 
-    # Print the rented nodes
-    print("Total nodes rented: ", len(rented_nodes))
-
-    distributaur.start_monitoring_server()
-    print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
-
+    print("TOTAL RENTED NODES: ", len(rented_nodes))
+    print(rented_nodes)
     tasks = []
 
     repo_id = distributaur.get_env("HF_REPO_ID")
@@ -68,24 +66,15 @@ if __name__ == "__main__":
     print("Submitting tasks...")
     # Submit the tasks
     # For each task, check if the output files already exist
-    for i in range(number_of_tasks):
+    for i in range(args.number_of_tasks):
         job_config = job_configs[i]
         # print(f"Task {i} submitted")
         # print(job_config)
 
-        # for each file in job_config["outputs"]
-        for output in job_config["outputs"]:
-            # check if the file exists in the dataset already
-            file_exists = distributaur.file_exists(repo_id, output)
-
-            # if the file exists, ask the user if they want to overwrite it
-            # if file_exists:
-            #     print("Files already exist. Do you want to overwrite them? (y/n): ")
-
         params = job_config["task_params"]
 
         # queue up the function for execution on the node
-        task = distributaur.execute_function(function_name, params)
+        task = distributaur.execute_function(example_function.__name__, params)
 
         # add the task to the list of tasks
         tasks.append(task)
@@ -116,7 +105,3 @@ if __name__ == "__main__":
                 pbar.set_postfix(elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}")
             # sleep for a few seconds
             time.sleep(1)
-
-    print("All tasks completed.")
-    print("Stopping the nodes in 2 minutes...")
-    time.sleep(120)

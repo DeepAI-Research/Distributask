@@ -1,3 +1,4 @@
+import atexit
 import os
 import subprocess
 import time
@@ -31,6 +32,9 @@ if __name__ == "__main__":
     job_configs = []
     number_of_tasks = 5
 
+    job_configs = []
+    number_of_tasks = 5
+
     # Submit params for the job
     for i in range(number_of_tasks):
         job_configs.append(
@@ -39,10 +43,6 @@ if __name__ == "__main__":
                 "task_params": {"index": i, "arg1": 1, "arg2": 2},
             }
         )
-
-    distributaur.start_monitoring_server()
-    print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
-
     tasks = []
 
     repo_id = distributaur.get_env("HF_REPO_ID")

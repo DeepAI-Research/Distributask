@@ -14,11 +14,6 @@ from huggingface_hub import HfApi, Repository
 from requests.exceptions import HTTPError
 from celery.utils.log import get_task_logger
 
-import atexit
-from subprocess import Popen
-import sys
-
-
 class Distributaur:
     """
     Configuration management class that stores settings and provides methods to update and retrieve these settings.
@@ -41,6 +36,7 @@ class Distributaur:
         redis_port=os.getenv("REDIS_PORT", 6379),
         redis_username=os.getenv("REDIS_USER", "default"),
         broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
+        max_connections=os.getenv("MAX_CONNECTIONS", 1),
     ) -> None:
         """
         Initialize the Distributaur object with the provided configuration parameters.
@@ -84,21 +80,15 @@ class Distributaur:
             "REDIS_PASSWORD": redis_password,
             "REDIS_PORT": redis_port,
             "REDIS_USER": redis_username,
-            "BROKER_POOL_LIMIT": broker_pool_limit,
             }
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
+        self.app.conf.broker_pool_limit = broker_pool_limit
+        self.app.conf.redis_max_connections = max_connections
 
         # At exit, close app
         atexit.register(self.app.close)
-
-        def close_flower_processes():
-            for process in self.flower_processes:
-                process.terminate()
-            self.flower_processes.clear()
-
-        atexit.register(close_flower_processes)
 
         self.app.task_acks_late = True
         self.app.worker_prefetch_multiplier = 1
@@ -306,8 +296,6 @@ class Distributaur:
         hf_token = self.settings.get("HF_TOKEN")
         repo_id = self.settings.get("HF_REPO_ID")
 
-        self.initialize_dataset()
-
         api = HfApi(token=hf_token)
 
         try:
@@ -339,8 +327,6 @@ class Distributaur:
         """
         hf_token = self.settings.get("HF_TOKEN")
         repo_id = self.settings.get("HF_REPO_ID")
-
-        self.initialize_dataset()
 
         api = HfApi(token=hf_token)
 
@@ -527,7 +513,7 @@ class Distributaur:
                 "VAST_API_KEY": self.get_env('VAST_API_KEY')
                 },
             "disk": 32,  # Set a non-zero value for disk
-            "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel=info",
+            "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel=info --concurrency=1",
             "runtype": "ssh ssh_proxy"
         }
         url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={self.get_env('VAST_API_KEY')}"
@@ -570,22 +556,37 @@ class Distributaur:
         Returns:
             List[Dict]: A list of dictionaries representing the rented nodes.
         """
-        offers = self.search_offers(max_price)
         rented_nodes: List[Dict] = []
-        for offer in offers:
-            if len(rented_nodes) >= max_nodes:
+        while len(rented_nodes) < max_nodes:
+            search_retries = 10
+            while search_retries > 0:
+                try:
+                    offers = self.search_offers(max_price)
+                    break
+                except Exception as e:
+                    self.log(f"Error searching for offers: {str(e)} - retrying in 5 seconds...", "error")
+                    search_retries -= 1
+                    # sleep for 5 seconds before retrying
+                    time.sleep(5)
+                    continue
+            
+            offers = sorted(offers, key=lambda offer: offer["dph_total"])  # Sort offers by price, lowest to highest
+            for offer in offers:
+                if len(rented_nodes) >= max_nodes:
+                    break
+                try:
+                    instance = self.create_instance(offer["id"], image, module_name)
+                    atexit.register(self.destroy_instance, instance["new_contract"])
+                    rented_nodes.append(
+                        {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
+                    )
+                except Exception as e:
+                    self.log(f"Error renting node: {str(e)} - searching for new offers", "error")
+                    break  # Break out of the current offer iteration
+            else:
+                # If the loop completes without breaking, all offers have been tried
+                self.log("No more offers available - stopping node rental", "warning")
                 break
-            try:
-                instance = self.create_instance(offer["id"], image, module_name)
-                rented_nodes.append(
-                    {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
-                )
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code in [400, 404]:
-                    pass
-                else:
-                    raise
-        atexit.register(self.terminate_nodes, rented_nodes)
         return rented_nodes
 
     def terminate_nodes(self, nodes: List[Dict]) -> None:
@@ -602,35 +603,6 @@ class Distributaur:
                 self.log(
                     f"Error terminating node: {node['instance_id']}, {str(e)}", "error"
                 )
-
-    def start_monitoring_server(
-        self, worker_name="distributaur.example.worker"
-    ) -> None:
-        """
-        Start Flower monitoring in a separate process.
-        The monitoring process will be automatically terminated when the main process exits.
-        """
-        # get the current python process
-        flower_process = Popen(
-            [
-                sys.executable,
-                "-m" "celery",
-                "-A",
-                worker_name,
-                "flower",
-            ]
-        )
-
-        self.flower_processes.append(flower_process)
-
-    def stop_monitoring_server(self) -> None:
-        """
-        Stop Flower monitoring by terminating the Flower process.
-        """
-        for process in self.flower_processes:
-            process.terminate()
-        self.flower_processes.clear()
-
 
 def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
     # Load environment variables from .env file
