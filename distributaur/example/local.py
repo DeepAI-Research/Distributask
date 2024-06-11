@@ -41,9 +41,6 @@ if __name__ == "__main__":
             }
         )
 
-    distributaur.start_monitoring_server()
-    print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
-
     tasks = []
 
     repo_id = distributaur.get_env("HF_REPO_ID")

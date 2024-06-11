@@ -101,11 +101,6 @@ This script configures the environment, registers a sample function, dispatches 
 - **rent_nodes(max_price: float, max_nodes: int, image: str, module_name: str) -> List[Dict]**: Rent nodes on the Vast.ai platform.
 - **terminate_nodes(nodes: List[Dict]) -> None**: Terminate the rented nodes.
 
-### Monitoring
-
-- **start_monitoring_server(worker_name: str = "distributaur.example.worker") -> None**: Start Flower monitoring in a separate process.
-- **stop_monitoring_server() -> None**: Stop Flower monitoring by terminating the Flower process.
-
 ## Contributing
 
 Contributions are welcome! For major changes, please open an issue first to discuss what you would like to change.
