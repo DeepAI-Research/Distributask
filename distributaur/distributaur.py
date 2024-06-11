@@ -29,8 +29,6 @@ class Distributaur:
     registered_functions: dict = {}
     pool: ConnectionPool = None
 
-    flower_processes = []
-
     def __init__(
         self,
         hf_repo_id=os.getenv("HF_REPO_ID"),
@@ -95,13 +93,6 @@ class Distributaur:
 
         # At exit, close app
         atexit.register(self.app.close)
-
-        def close_flower_processes():
-            for process in self.flower_processes:
-                process.terminate()
-            self.flower_processes.clear()
-
-        atexit.register(close_flower_processes)
 
         self.app.task_acks_late = True
         self.app.worker_prefetch_multiplier = 1
@@ -531,7 +522,7 @@ class Distributaur:
                 "VAST_API_KEY": self.get_env('VAST_API_KEY')
                 },
             "disk": 32,  # Set a non-zero value for disk
-            "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel=info",
+            "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel=info --concurrency=1",
             "runtype": "ssh ssh_proxy"
         }
         url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={self.get_env('VAST_API_KEY')}"
@@ -606,34 +597,6 @@ class Distributaur:
                 self.log(
                     f"Error terminating node: {node['instance_id']}, {str(e)}", "error"
                 )
-
-    def start_monitoring_server(
-        self, worker_name="distributaur.example.worker"
-    ) -> None:
-        """
-        Start Flower monitoring in a separate process.
-        The monitoring process will be automatically terminated when the main process exits.
-        """
-        # get the current python process
-        flower_process = Popen(
-            [
-                sys.executable,
-                "-m" "celery",
-                "-A",
-                worker_name,
-                "flower",
-            ]
-        )
-
-        self.flower_processes.append(flower_process)
-
-    def stop_monitoring_server(self) -> None:
-        """
-        Stop Flower monitoring by terminating the Flower process.
-        """
-        for process in self.flower_processes:
-            process.terminate()
-        self.flower_processes.clear()
 
 
 def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
