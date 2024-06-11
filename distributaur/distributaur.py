@@ -34,6 +34,7 @@ class Distributaur:
         redis_port=os.getenv("REDIS_PORT", 6379),
         redis_username=os.getenv("REDIS_USER", "default"),
         broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
+        max_connections=os.getenv("MAX_CONNECTIONS", 1),
     ) -> None:
         """
         Initialize the Distributaur object with the provided configuration parameters.
@@ -47,6 +48,7 @@ class Distributaur:
             redis_port (int): Redis port. Defaults to 6379.
             redis_username (str): Redis username. Defaults to "default".
             broker_pool_limit (int): Celery broker pool limit. Defaults to 1.
+            max_connections (int): Maximum number of connections to the Redis server. Defaults to 10.
 
         Raises:
             ValueError: If any of the required parameters (hf_repo_id, hf_token, vast_api_key) are not provided.
@@ -79,12 +81,15 @@ class Distributaur:
                 "port": redis_port,
                 "username": redis_username,
                 "broker_pool_limit": broker_pool_limit,
+                "max_connections": max_connections,
             },
         }
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
         self.app.conf.broker_pool_limit = self.settings["redis"]["broker_pool_limit"]
+        self.app.conf.redis_max_connections = max_connections
+
 
         # At exit, close app
         atexit.register(self.app.close)
@@ -642,7 +647,7 @@ def create_from_config(config_path="config.json", env_path=".env") -> Distributa
             "REDIS_USER", settings.get("redis", {}).get("username")
         ),
         broker_pool_limit=settings.get(
-            "BROKER_POOL_LIMIT", settings.get("redis", {}).get("broker_pool_limit")
+            "BROKER_POOL_LIMIT", settings.get("redis", {}).get("broker_pool_limit", 1)
         ),
     )
     return distributaur
