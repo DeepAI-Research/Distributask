@@ -1,10 +1,10 @@
+import atexit
 import os
-import sys
+import subprocess
 import time
+from tqdm import tqdm
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
-
-from distributaur.example.shared import distributaur, example_function
+from .shared import distributaur, example_function
 
 
 if __name__ == "__main__":
@@ -30,9 +30,7 @@ if __name__ == "__main__":
         raise ValueError("Vast API key not found in configuration.")
 
     job_configs = []
-    number_of_tasks = 10
-
-    function_name = "example_function"
+    number_of_tasks = 5
 
     # Submit params for the job
     for i in range(number_of_tasks):
@@ -54,11 +52,8 @@ if __name__ == "__main__":
     # For each task, check if the output files already exist
     for i in range(number_of_tasks):
         job_config = job_configs[i]
-        print(f"Task {i}")
-        print(job_config)
-        print("Task params: ", job_config["task_params"])
-
-        skip_task = False
+        # print(f"Task {i}")
+        # print(job_config)
 
         # for each file in job_config["outputs"]
         for output in job_config["outputs"]:
@@ -67,37 +62,98 @@ if __name__ == "__main__":
 
             # if the file exists, ask the user if they want to overwrite it
             if file_exists:
-                user_input = input(
-                    "Files already exist. Do you want to overwrite them? (y/n): "
-                )
-                if user_input.lower() == "n":
-                    print("Skipping task")
-                    skip_task = True
-                else:
-                    print("Overwriting files")
+                print("Files already exist. Do you want to overwrite them? (y/n): ")
 
-        if skip_task is False:
-            print("Submitting tasks...")
+        print("Submitting tasks...")
 
-            params = job_config["task_params"]
+        params = job_config["task_params"]
 
-            # queue up the function for execution on the node
-            task = distributaur.execute_function(function_name, params)
+        # queue up the function for execution on the node
+        task = distributaur.execute_function(example_function.__name__, params)
 
-            # add the task to the list of tasks
-            tasks.append(task)
+        # add the task to the list of tasks
+        tasks.append(task)
 
+    docker_installed = False
+
+    # first, check if docker is installed
+    try:
+        subprocess.run(["docker", "--version"], check=True)
+        docker_installed = True
+    except Exception as e:
+        print("Docker is not installed. Starting worker locally.")
+        print(e)
+
+    docker_process = None
+
+    if docker_installed is False:
+        print("Docker is not installed. Starting worker locally.")
+        subprocess.Popen(
+            ["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"]
+        )
+    else:
+        build_process = subprocess.Popen(
+            [
+                "docker",
+                "build",
+                "-t",
+                "distributaur-example-worker",
+                ".",
+            ]
+        )
+        build_process.wait()
+
+        docker_process = subprocess.Popen(
+            [
+                "docker",
+                "run",
+                "-e",
+                f"VAST_API_KEY={vast_api_key}",
+                "-e",
+                f"REDIS_HOST={distributaur.get_env('REDIS_HOST')}",
+                "-e",
+                f"REDIS_PORT={distributaur.get_env('REDIS_PORT')}",
+                "-e",
+                f"REDIS_PASSWORD={distributaur.get_env('REDIS_PASSWORD')}",
+                "-e",
+                f"REDIS_USER={distributaur.get_env('REDIS_USER')}",
+                "-e",
+                f"HF_TOKEN={distributaur.get_env('HF_TOKEN')}",
+                "-e",
+                f"HF_REPO_ID={repo_id}",
+                "distributaur-example-worker",
+            ]
+        )
+
+        def kill_docker():
+            print("Killing docker container")
+            docker_process.terminate()
+
+        atexit.register(kill_docker)
+
+    print("Tasks submitted to queue. Initializing queue...")
+    prev_tasks = 0
+    first_task_done = False
+    queue_start_time = time.time()
     # Wait for the tasks to complete
-    print("Tasks submitted to queue. Waiting for tasks to complete...")
-    while not all(task.ready() for task in tasks):
-        print("Tasks completed: " + str([task.ready() for task in tasks]))
-        print("Tasks remaining: " + str([task for task in tasks if not task.ready()]))
-        # sleep for a few seconds
-        time.sleep(1)
+    with tqdm(total=len(tasks), unit="task") as pbar:
+        while not all(task.ready() for task in tasks):
+            current_tasks = sum([task.ready() for task in tasks])
+            pbar.update(current_tasks - pbar.n)
 
-    # while True:
-    #     user_input = input("Press q to quit monitoring: ")
-    #     if user_input.lower() == "q":
-    #         print("Stopping monitoring")
-    #         stop_monitoring_server()
-    #         break
+            if current_tasks > 0:
+                # begin estimation from time of first task
+                if not first_task_done:
+                    first_task_done = True
+                    first_task_start_time = time.time()
+                    print("Initialization completed. Tasks started...")
+
+                # calculate and print total elapsed time and estimated time left
+                end_time = time.time()
+                elapsed_time = end_time - first_task_start_time
+                time_per_tasks = elapsed_time / current_tasks
+                time_left = time_per_tasks * (len(tasks) - current_tasks)
+
+                pbar.set_postfix(elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}")
+            # sleep for a few seconds
+            time.sleep(1)

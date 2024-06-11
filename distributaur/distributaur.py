@@ -19,9 +19,6 @@ from subprocess import Popen
 import sys
 
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
-
-
 class Distributaur:
     """
     Configuration management class that stores settings and provides methods to update and retrieve these settings.
@@ -34,59 +31,66 @@ class Distributaur:
 
     flower_processes = []
 
-    def __init__(self, config_path="config.json", env_path=".env") -> None:
+    def __init__(
+        self,
+        hf_repo_id=os.getenv("HF_REPO_ID"),
+        hf_token=os.getenv("HF_TOKEN"),
+        vast_api_key=os.getenv("VAST_API_KEY"),
+        redis_host=os.getenv("REDIS_HOST", "localhost"),
+        redis_password=os.getenv("REDIS_PASSWORD", ""),
+        redis_port=os.getenv("REDIS_PORT", 6379),
+        redis_username=os.getenv("REDIS_USER", "default"),
+        broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
+    ) -> None:
         """
-        Initialize the Config object by loading configuration from a JSON file using omegaconf
-        and overriding with environment variables from a .env file.
+        Initialize the Distributaur object with the provided configuration parameters.
 
         Args:
-            config_path (str): Path to the configuration JSON file. Defaults to "config.json".
-            env_path (str): Path to the .env file. Defaults to ".env".
+            hf_repo_id (str): Hugging Face repository ID.
+            hf_token (str): Hugging Face API token.
+            vast_api_key (str): Vast.ai API key.
+            redis_host (str): Redis host. Defaults to "localhost".
+            redis_password (str): Redis password. Defaults to an empty string.
+            redis_port (int): Redis port. Defaults to 6379.
+            redis_username (str): Redis username. Defaults to "default".
+            broker_pool_limit (int): Celery broker pool limit. Defaults to 1.
 
         Raises:
-            FileNotFoundError: If any required configuration value is missing.
+            ValueError: If any of the required parameters (hf_repo_id, hf_token, vast_api_key) are not provided.
         """
-        # Load environment variables from .env file
-        load_dotenv(env_path)
+        if hf_repo_id is None:
+            raise ValueError(
+                "HF_REPO_ID is not provided to the Distributaur constructor"
+            )
 
-        # check if config_path exists
-        if not os.path.exists(config_path):
-            print(f"Creating config file at {config_path}")
-            config = {
-                "redis": {
-                    "host": os.getenv("REDIS_HOST"),
-                    "password": os.getenv("REDIS_PASSWORD"),
-                    "port": os.getenv("REDIS_PORT"),
-                    "username": os.getenv("REDIS_USER"),
-                    "broker_pool_limit": 1,
-                },
-                "HF_REPO_ID": os.getenv("HF_REPO_ID"),
-                "HF_TOKEN": os.getenv("HF_TOKEN"),
-                "VAST_API_KEY": os.getenv("VAST_API_KEY"),
+        if hf_token is None:
+            raise ValueError("HF_TOKEN is not provided to the Distributaur constructor")
+
+        if vast_api_key is None:
+            raise ValueError(
+                "VAST_API_KEY is not provided to the Distributaur constructor"
+            )
+
+        if redis_host == "localhost":
+            print(
+                "WARNING: Using default Redis host 'localhost'. This is not recommended for production use and won't work for distributed rendering."
+            )
+
+        self.settings = {
+            "HF_REPO_ID": hf_repo_id,
+            "HF_TOKEN": hf_token,
+            "VAST_API_KEY": vast_api_key,
+            "REDIS_HOST": redis_host,
+            "REDIS_PASSWORD": redis_password,
+            "REDIS_PORT": redis_port,
+            "REDIS_USER": redis_username,
+            "BROKER_POOL_LIMIT": broker_pool_limit,
             }
-
-            # print the config
-            print(config)
-
-            with open(config_path, "w") as f:
-                json.dump(config, f, indent=2)
-
-        # Load configuration from JSON file
-        self.settings = OmegaConf.load(config_path)
-
-        if not all(self.settings.values()) or not all(
-            self.settings.get("redis", {"host": None}).values()
-        ):
-            raise FileNotFoundError(f"Please fill in the necessary values.")
-
-        env_dict = {key: value for key, value in os.environ.items()}
-        self.settings = OmegaConf.merge(self.settings, OmegaConf.create(env_dict))
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
-        self.app.conf.broker_pool_limit = self.settings.redis.broker_pool_limit
 
-        # at exit, close app
+        # At exit, close app
         atexit.register(self.app.close)
 
         def close_flower_processes():
@@ -132,11 +136,10 @@ class Distributaur:
         Raises:
             ValueError: If any required Redis connection parameter is missing.
         """
-        redis_config = self.settings.redis
-        host = redis_config.host
-        password = redis_config.password
-        port = redis_config.port
-        username = redis_config.username
+        host = self.settings["REDIS_HOST"]
+        password = self.settings["REDIS_PASSWORD"]
+        port = self.settings["REDIS_PORT"]
+        username = self.settings["REDIS_USER"]
 
         if None in [host, password, port, username]:
             raise ValueError("Missing required Redis configuration values")
@@ -191,6 +194,7 @@ class Distributaur:
 
         Raises:
             ValueError: If the function name is not registered.
+            Exception: If an error occurs during the execution of the function. The task will retry in this case.
         """
         try:
             if func_name not in self.registered_functions:
@@ -224,13 +228,12 @@ class Distributaur:
     def execute_function(self, func_name: str, args: dict) -> Celery.AsyncResult:
         """
         Execute a registered function as a Celery task with provided arguments.
-
         Args:
             func_name (str): The name of the function to execute.
             args (dict): Arguments to pass to the function.
 
         Returns:
-            AsyncResult: An object representing the asynchronous result of the task.
+            celery.result.AsyncResult: An object representing the asynchronous result of the task.
         """
         args_json = json.dumps(args)
         return self.call_function_task.delay(func_name, args_json)
@@ -295,6 +298,10 @@ class Distributaur:
 
         Args:
             file_path (str): The path of the file to upload.
+
+        Raises:
+            Exception: If an error occurs during the upload process.
+
         """
         hf_token = self.settings.get("HF_TOKEN")
         repo_id = self.settings.get("HF_REPO_ID")
@@ -326,6 +333,9 @@ class Distributaur:
         Args:
             output_dir (str): The local directory containing the files to upload.
             repo_dir (str): The directory path in the repository where the files will be uploaded.
+
+        Raises:
+            Exception: If an error occurs during the upload process for any file.
         """
         hf_token = self.settings.get("HF_TOKEN")
         repo_id = self.settings.get("HF_REPO_ID")
@@ -366,6 +376,10 @@ class Distributaur:
         Args:
             repo_id (str): The ID of the repository.
             path_in_repo (str): The path of the file to delete within the repository.
+
+        Raises:
+            Exception: If an error occurs during the deletion process.
+
         """
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
@@ -394,6 +408,9 @@ class Distributaur:
 
         Returns:
             bool: True if the file exists in the repository, False otherwise.
+
+        Raises:
+            Exception: If an error occurs while checking the existence of the file.
         """
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
@@ -419,6 +436,9 @@ class Distributaur:
 
         Returns:
             list: A list of file paths in the repository.
+
+        Raises:
+            Exception: If an error occurs while retrieving the list of files.
         """
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
@@ -474,13 +494,14 @@ class Distributaur:
             )
             raise
 
-    def create_instance(self, offer_id: str, image: str) -> Dict:
+    def create_instance(self, offer_id: str, image: str, module_name: str) -> Dict:
         """
         Create an instance on the Vast.ai platform.
 
         Args:
             offer_id (str): The ID of the offer to create the instance from.
-            image (str): The image to use for the instance.
+            image (str): The image to use for the instance. (example: RaccoonResearch/distributaur-test-worker)
+            module_name (str): The name of the module to run on the instance (example: distributaur.example.worker)
 
         Returns:
             Dict: A dictionary representing the created instance.
@@ -496,18 +517,18 @@ class Distributaur:
         json_blob = {
             "client_id": "me",
             "image": image,
-            "env": "",
-            "disk": 16,  # Set a non-zero value for disk
-            "onstart": f"export PATH=$PATH:/ &&  cd ../ && REDIS_HOST={self.get_env('REDIS_HOST')} REDIS_PORT={self.get_env('REDIS_PORT')} REDIS_USER={self.get_env('REDIS_USER')} REDIS_PASSWORD={self.get_env('REDIS_PASSWORD')} HF_TOKEN={self.get_env('HF_TOKEN')} HF_REPO_ID={self.get_env('HF_REPO_ID')} VAST_API_KEY={self.get_env('VAST_API_KEY')} celery -A distributaur.worker worker --loglevel=info",
-            "runtype": "ssh ssh_proxy",
-            "image_login": None,
-            "python_utf8": False,
-            "lang_utf8": False,
-            "use_jupyter_lab": False,
-            "jupyter_dir": None,
-            "create_from": "",
-            "template_hash_id": "250671155ccbc28d0609af524b75a80e",
-            "template_id": 108305,
+            "env": {
+                "REDIS_HOST": self.get_env('REDIS_HOST'),
+                "REDIS_PORT": self.get_env('REDIS_PORT'),
+                "REDIS_USER": self.get_env('REDIS_USER'),
+                "REDIS_PASSWORD": self.get_env('REDIS_PASSWORD'),
+                "HF_TOKEN": self.get_env('HF_TOKEN'),
+                "HF_REPO_ID": self.get_env('HF_REPO_ID'),
+                "VAST_API_KEY": self.get_env('VAST_API_KEY')
+                },
+            "disk": 32,  # Set a non-zero value for disk
+            "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel=info",
+            "runtype": "ssh ssh_proxy"
         }
         url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={self.get_env('VAST_API_KEY')}"
         headers = {"Authorization": f"Bearer {self.get_env('VAST_API_KEY')}"}
@@ -537,7 +558,7 @@ class Distributaur:
         response = requests.delete(url, headers=headers)
         return response.json()
 
-    def rent_nodes(self, max_price: float, max_nodes: int, image: str) -> List[Dict]:
+    def rent_nodes(self, max_price: float, max_nodes: int, image: str, module_name: str) -> List[Dict]:
         """
         Rent nodes on the Vast.ai platform.
 
@@ -555,7 +576,7 @@ class Distributaur:
             if len(rented_nodes) >= max_nodes:
                 break
             try:
-                instance = self.create_instance(offer["id"], image)
+                instance = self.create_instance(offer["id"], image, module_name)
                 rented_nodes.append(
                     {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
                 )
@@ -609,3 +630,39 @@ class Distributaur:
         for process in self.flower_processes:
             process.terminate()
         self.flower_processes.clear()
+
+
+def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
+    # Load environment variables from .env file
+    try:
+        load_dotenv(env_path)
+    except:
+        print("No .env file found. Using system environment variables only.")
+
+    # Load configuration from JSON file
+    try:
+        settings = OmegaConf.load(config_path)
+        if not all(settings.values()) or not all(
+            settings.get("redis", {"host": None}).values()
+        ):
+            print(f"Configuration file is missing necessary values.")
+    except:
+        print(
+            "Configuration file not found. Falling back to system environment variables."
+        )
+        settings = {}
+
+    env_dict = {key: value for key, value in os.environ.items()}
+    settings = OmegaConf.merge(settings, OmegaConf.create(env_dict))
+
+    distributaur = Distributaur(
+        hf_repo_id=settings.get("HF_REPO_ID"),
+        hf_token=settings.get("HF_TOKEN"),
+        vast_api_key=settings.get("VAST_API_KEY"),
+        redis_host=settings.get("REDIS_HOST"),
+        redis_password=settings.get("REDIS_PASSWORD"),
+        redis_port=settings.get("REDIS_PORT"),
+        redis_username=settings.get("REDIS_USER"),
+        broker_pool_limit=settings.get("BROKER_POOL_LIMIT")
+    )
+    return distributaur

@@ -1,19 +1,14 @@
-from io import StringIO
 import json
 import pytest
-import subprocess
 import time
 import os
-import sys
 import tempfile
 from unittest.mock import MagicMock, patch
 
 from huggingface_hub import HfApi
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
-
-from distributaur.distributaur import Distributaur
-from distributaur.tests.worker import example_function
+from ..distributaur import create_from_config
+from .worker import example_test_function
 
 
 @pytest.fixture
@@ -29,7 +24,7 @@ def test_register_function(mock_task_function):
     Test the register_function function.
     """
     mock_task_function.__name__ = "mock_task"  # Set the __name__ attribute
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     decorated_task = distributaur.register_function(mock_task_function)
 
     assert callable(decorated_task)
@@ -47,7 +42,7 @@ def test_execute_function(mock_delay, mock_task_function):
     Test the execute_function function.
     """
     mock_task_function.__name__ = "mock_task"  # Set the __name__ attribute
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     distributaur.register_function(mock_task_function)
 
     params = {"arg1": 1, "arg2": 2}
@@ -58,28 +53,31 @@ def test_execute_function(mock_delay, mock_task_function):
 
 
 def test_register_function():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
 
-    distributaur.register_function(example_function)
-    assert "example_function" in distributaur.registered_functions
-    assert distributaur.registered_functions["example_function"] == example_function
+    distributaur.register_function(example_test_function)
+    assert "example_test_function" in distributaur.registered_functions
+    assert (
+        distributaur.registered_functions["example_test_function"]
+        == example_test_function
+    )
     print("Task registration test passed")
 
 
 def test_execute_function():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
 
-    distributaur.register_function(example_function)
+    distributaur.register_function(example_test_function)
     task_params = {"arg1": 10, "arg2": 20}
-    task = distributaur.execute_function("example_function", task_params)
+    task = distributaur.execute_function("example_test_function", task_params)
     assert task.id is not None
     print("Task execution test passed")
 
 
 # def test_worker_task_execution():
-#     distributaur = Distributaur()
+#     distributaur = create_from_config()
 
-#     distributaur.register_function(example_function)
+#     distributaur.register_function(example_test_function)
 
 #     worker_cmd = [
 #         "celery",
@@ -96,10 +94,10 @@ def test_execute_function():
 
 #     task_params = {"arg1": 10, "arg2": 20}
 #     print("executing task")
-#     task = distributaur.execute_function("example_function", task_params)
+#     task = distributaur.execute_function("example_test_function", task_params)
 #     result = task.get(timeout=30)
 
-#     assert result == "Result: arg1=30"
+#     assert result == "+arg2=30"
 
 #     worker_process.terminate()
 #     worker_process.wait()
@@ -108,7 +106,7 @@ def test_execute_function():
 
 
 def test_task_status_update():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     redis_client = distributaur.get_redis_connection()
 
     task_status_keys = redis_client.keys("task_status:*")
@@ -129,7 +127,7 @@ def test_task_status_update():
 
 
 def test_initialize_repo():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
 
     # Initialize the repository
     distributaur.initialize_dataset()
@@ -158,7 +156,7 @@ def test_initialize_repo():
 
 
 def test_upload_directory():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     distributaur.initialize_dataset()
     # Create a temporary directory for testing
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -192,7 +190,7 @@ def test_upload_directory():
 
 
 def test_delete_file():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
@@ -228,7 +226,7 @@ def test_delete_file():
 
 
 def test_file_exists():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
@@ -261,7 +259,7 @@ def test_file_exists():
 
 
 def test_list_files():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     distributaur.initialize_dataset()
     hf_token = distributaur.get_env("HF_TOKEN")
     repo_id = distributaur.get_env("HF_REPO_ID")
@@ -298,13 +296,14 @@ def test_list_files():
 
 @pytest.fixture(scope="module")
 def rented_nodes():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
 
     max_price = 0.5
     max_nodes = 1
     image = "arfx/distributaur-worker:latest"
+    module_name = "distributaur.example.worker"
 
-    nodes = distributaur.rent_nodes(max_price, max_nodes, image)
+    nodes = distributaur.rent_nodes(max_price, max_nodes, image, module_name)
     yield nodes
 
     distributaur.terminate_nodes(nodes)
@@ -316,18 +315,18 @@ def test_rent_run_terminate(rented_nodes):
 
 
 def test_get_redis_url():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     redis_url = distributaur.get_redis_url()
 
     assert redis_url.startswith("redis://")
-    assert distributaur.settings.redis.username in redis_url
-    assert distributaur.settings.redis.password in redis_url
-    assert distributaur.settings.redis.host in redis_url
-    assert str(distributaur.settings.redis.port) in redis_url
+    assert distributaur.settings["REDIS_USER"] in redis_url
+    assert distributaur.settings["REDIS_PASSWORD"] in redis_url
+    assert distributaur.settings["REDIS_HOST"] in redis_url
+    assert str(distributaur.settings["REDIS_PORT"]) in redis_url
 
 
 def test_get_redis_connection_force_new():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     redis_client1 = distributaur.get_redis_connection()
     redis_client2 = distributaur.get_redis_connection(force_new=True)
 
@@ -335,7 +334,7 @@ def test_get_redis_connection_force_new():
 
 
 def test_get_redis_connection_force_new():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     redis_client1 = distributaur.get_redis_connection()
     redis_client2 = distributaur.get_redis_connection(force_new=True)
 
@@ -343,7 +342,7 @@ def test_get_redis_connection_force_new():
 
 
 def test_get_env_with_default():
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     default_value = "default"
     value = distributaur.get_env("NON_EXISTENT_KEY", default_value)
 
@@ -352,7 +351,7 @@ def test_get_env_with_default():
 
 @patch("requests.get")
 def test_search_offers(mock_get):
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     max_price = 1.0
 
     mock_response = MagicMock()
@@ -368,68 +367,86 @@ def test_search_offers(mock_get):
 
 @patch("requests.put")
 def test_create_instance(mock_put):
-    distributaur = Distributaur()
+    distributaur = create_from_config()
     offer_id = "offer1"
     image = "test_image"
+    module_name = "distributaur.example.worker"
 
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"new_contract": "instance1"}
     mock_put.return_value = mock_response
 
-    instance = distributaur.create_instance(offer_id, image)
+    instance = distributaur.create_instance(offer_id, image, module_name)
 
     assert instance["new_contract"] == "instance1"
 
 
-def test_local_example_run():
+# def test_local_example_run():
+#     # Capture the stdout and stderr during the execution
+#     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
+#         "sys.stderr", new=StringIO()
+#     ) as fake_err:
+#         distributaur = create_from_config()
 
-    # Capture the stdout and stderr during the execution
-    with patch("sys.stdout", new=StringIO()) as fake_out, patch(
-        "sys.stderr", new=StringIO()
-    ) as fake_err:
-        # verify that the local.py exists, ls the files if it doesnt
-        if not os.path.exists("distributaur/example/local.py"):
-            print("Local.py does not exist")
-        exec(open("distributaur/example/local.py").read())
+#         number_of_tasks = 5
 
-    # def test_distributed_example_function():
-    #     distributaur = Distributaur()
-    #     distributaur.register_function(example_function)
+#         # Start a new process to run the local example
+#         process = subprocess.Popen(["python", "-m", "distributaur.example.local"])
+#         process.wait()
 
-    #     task_params = {"index": 0, "arg1": 5, "arg2": 10}
-    #     result = example_function(**task_params)
+#         # Assert that the expected output is captured in stdout and stderr
+#         assert "Tasks submitted to queue. Waiting for tasks to complete..." in fake_out.getvalue()
+#         assert "All tasks completed." in fake_out.getvalue()
+#         assert "Example completed." in fake_out.getvalue()
 
-    #     assert result == "Task 0 completed. Result (5 + 10): 15"
+#         # Assert that no errors are captured in stderr
+#         assert fake_err.getvalue() == ""
 
-# @patch("distributaur.distributaur.Distributaur.rent_nodes")
-# @patch("distributaur.distributaur.Distributaur.terminate_nodes")
-# def test_distributed_example_run(mock_rent_nodes, mock_terminate_nodes):
-#     # Mock the rent_nodes method to return a list of rented nodes
-#     mock_rent_nodes.return_value = [{"instance_id": "instance1"}]
+#         # Assert that the expected files are uploaded to the Hugging Face repository
+#         repo_id = distributaur.get_env("HF_REPO_ID")
+#         repo_files = distributaur.list_files(repo_id)
+#         assert "datetime.txt" in repo_files
+#         assert all(f"result_{i}.txt" in repo_files for i in range(number_of_tasks))
 
-#     # Run the main block of code from distributed.py
-#     # You can modify the code to accept command-line arguments for testing purposes
-#     # For example, you can pass the number of tasks as an argument
-#     sys.argv = ["example/distributed.py", "--tasks", "3"]
+# def test_distributed_example_run():
+#     distributaur = create_from_config()
+
+#     number_of_tasks = 10
 
 #     # Capture the stdout and stderr during the execution
 #     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
 #         "sys.stderr", new=StringIO()
 #     ) as fake_err:
-#         exec(open("example/distributed.py").read())
+#         # Start a new process to run the distributed example
+#         process = subprocess.Popen(["python", "-m", "distributaur.example.distributed"])
+#         process.wait()
 
-#     # Assert the expected output or behavior
-#     # For example, check if the expected number of tasks were submitted
-#     assert "TOTAL NODES AVAILABLE:" in fake_out.getvalue()
-#     assert "TOTAL RENTED NODES:" in fake_out.getvalue()
-#     assert "Submitting tasks..." in fake_out.getvalue()
-#     assert (
-#         "Tasks submitted to queue. Waiting for tasks to complete..."
-#         in fake_out.getvalue()
-#     )
-#     assert "Worker process terminated." in fake_out.getvalue()
-#     assert "Example completed." in fake_out.getvalue()
+#         # Assert that the expected output is captured in stdout and stderr
+#         assert "TOTAL NODES AVAILABLE: " in fake_out.getvalue()
+#         assert "TOTAL RENTED NODES: " in fake_out.getvalue()
+#         assert "Monitoring server started. Visit http://localhost:5555 to monitor the job." in fake_out.getvalue()
+#         assert "Tasks submitted to queue. Waiting for tasks to complete..." in fake_out.getvalue()
+#         assert "All tasks completed." in fake_out.getvalue()
+#         assert "Shutting down monitoring server in 10 seconds..." in fake_out.getvalue()
+#         assert "Example completed." in fake_out.getvalue()
 
-#     # Verify that the rented nodes were terminated
-#     mock_terminate_nodes.assert_called_once()
+#         # Assert that no errors are captured in stderr
+#         assert fake_err.getvalue() == ""
+
+#         # Assert that the correct number of tasks is submitted
+#         assert f"Task {number_of_tasks - 1}" in fake_out.getvalue()
+
+#         # Assert that the tasks complete successfully
+#         assert "Tasks completed: [True, True, ...]" in fake_out.getvalue()
+
+#         # Assert that the expected files are uploaded to the Hugging Face repository
+#         repo_id = distributaur.get_env("HF_REPO_ID")
+#         repo_files = distributaur.list_files(repo_id)
+#         assert all(f"result_{i}.txt" in repo_files for i in range(number_of_tasks))
+
+#         # Assert that the results of the tasks match the expected values
+#         for i in range(number_of_tasks):
+#             result_file = f"result_{i}.txt"
+#             result_content = distributaur.download_file(repo_id, result_file)
+#             assert result_content == f"1 plus 2 is 3"

@@ -1,12 +1,8 @@
 import os
-import sys
 
+from ..distributaur import create_from_config
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
-
-from distributaur import Distributaur
-
-distributaur = Distributaur()
+distributaur = create_from_config()
 
 
 # This is the function that will be executed on the nodes

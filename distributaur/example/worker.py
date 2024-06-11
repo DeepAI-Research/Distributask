@@ -1,11 +1,5 @@
-import os
-import sys
+from .shared import distributaur, example_function
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "./"))
-
-from distributaur.example.shared import distributaur, example_function
+distributaur.register_function(example_function)
 
 celery = distributaur.app
-
-if __name__ == "main":
-    distributaur.register_function(example_function)
