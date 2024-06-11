@@ -33,8 +33,7 @@ class Distributaur:
         redis_password=os.getenv("REDIS_PASSWORD", ""),
         redis_port=os.getenv("REDIS_PORT", 6379),
         redis_username=os.getenv("REDIS_USER", "default"),
-        broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
-        max_connections=os.getenv("MAX_CONNECTIONS", 1),
+        broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1)
     ) -> None:
         """
         Initialize the Distributaur object with the provided configuration parameters.
@@ -48,7 +47,6 @@ class Distributaur:
             redis_port (int): Redis port. Defaults to 6379.
             redis_username (str): Redis username. Defaults to "default".
             broker_pool_limit (int): Celery broker pool limit. Defaults to 1.
-            max_connections (int): Maximum number of connections to the Redis server. Defaults to 10.
 
         Raises:
             ValueError: If any of the required parameters (hf_repo_id, hf_token, vast_api_key) are not provided.
@@ -80,16 +78,16 @@ class Distributaur:
                 "password": redis_password,
                 "port": redis_port,
                 "username": redis_username,
-                "broker_pool_limit": broker_pool_limit,
-                "max_connections": max_connections,
+                "broker_pool_limit": broker_pool_limit
             },
         }
+        
+        print('**** SELF.SETTINGS')
+        print(self.settings)
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
         self.app.conf.broker_pool_limit = self.settings["redis"]["broker_pool_limit"]
-        self.app.conf.redis_max_connections = max_connections
-
 
         # At exit, close app
         atexit.register(self.app.close)
@@ -610,8 +608,13 @@ class Distributaur:
                     f"Error terminating node: {node['instance_id']}, {str(e)}", "error"
                 )
 
+distributaur = None
 
 def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
+    print('**** CREATE_FROM_CONFIG')
+    global distributaur
+    if distributaur is not None:
+        return distributaur
     # Load environment variables from .env file
     try:
         load_dotenv(env_path)
