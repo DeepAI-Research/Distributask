@@ -12,7 +12,7 @@ pip install distributaur
 
 ### Prerequisites
 
-- Python 3.8 or newer (tested on 3.10)
+- Python 3.8 or newer (tested on 3.11)
 - Redis server
 - Celery
 
