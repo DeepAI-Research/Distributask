@@ -52,9 +52,8 @@ if __name__ == "__main__":
     # For each task, check if the output files already exist
     for i in range(number_of_tasks):
         job_config = job_configs[i]
-        print(f"Task {i}")
-        print(job_config)
-        print("Task params: ", job_config["task_params"])
+        # print(f"Task {i}")
+        # print(job_config)
 
         # for each file in job_config["outputs"]
         for output in job_config["outputs"]:
@@ -74,12 +73,6 @@ if __name__ == "__main__":
 
         # add the task to the list of tasks
         tasks.append(task)
-
-    # start the worker
-    # first, try starting the docker container
-    # if that errors, start the worker locally
-
-    # TODO:
 
     docker_installed = False
 
@@ -138,18 +131,29 @@ if __name__ == "__main__":
 
         atexit.register(kill_docker)
 
+    print("Tasks submitted to queue. Initializing queue...")
+    prev_tasks = 0
+    first_task_done = False
+    queue_start_time = time.time()
     # Wait for the tasks to complete
-    print("Tasks submitted to queue. Waiting for tasks to complete...")
     with tqdm(total=len(tasks), unit="task") as pbar:
         while not all(task.ready() for task in tasks):
-            completed_tasks = sum([task.ready() for task in tasks])
-            pbar.update(completed_tasks - pbar.n)
+            current_tasks = sum([task.ready() for task in tasks])
+            pbar.update(current_tasks - pbar.n)
+
+            if current_tasks > 0:
+                # begin estimation from time of first task
+                if not first_task_done:
+                    first_task_done = True
+                    first_task_start_time = time.time()
+                    print("Initialization completed. Tasks started...")
+
+                # calculate and print total elapsed time and estimated time left
+                end_time = time.time()
+                elapsed_time = end_time - first_task_start_time
+                time_per_tasks = elapsed_time / current_tasks
+                time_left = time_per_tasks * (len(tasks) - current_tasks)
+
+                pbar.set_postfix(elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}")
             # sleep for a few seconds
             time.sleep(1)
-
-    # while True:
-    #     user_input = input("Press q to quit monitoring: ")
-    #     if user_input.lower() == "q":
-    #         print("Stopping monitoring")
-    #         stop_monitoring_server()
-    #         break

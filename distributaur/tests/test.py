@@ -319,10 +319,10 @@ def test_get_redis_url():
     redis_url = distributaur.get_redis_url()
 
     assert redis_url.startswith("redis://")
-    assert distributaur.settings["redis"]["username"] in redis_url
-    assert distributaur.settings["redis"]["password"] in redis_url
-    assert distributaur.settings["redis"]["host"] in redis_url
-    assert str(distributaur.settings["redis"]["port"]) in redis_url
+    assert distributaur.settings["REDIS_USER"] in redis_url
+    assert distributaur.settings["REDIS_PASSWORD"] in redis_url
+    assert distributaur.settings["REDIS_HOST"] in redis_url
+    assert str(distributaur.settings["REDIS_PORT"]) in redis_url
 
 
 def test_get_redis_connection_force_new():
