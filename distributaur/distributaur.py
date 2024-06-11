@@ -75,19 +75,17 @@ class Distributaur:
             "HF_REPO_ID": hf_repo_id,
             "HF_TOKEN": hf_token,
             "VAST_API_KEY": vast_api_key,
-            "redis": {
-                "host": redis_host,
-                "password": redis_password,
-                "port": redis_port,
-                "username": redis_username,
-                "broker_pool_limit": broker_pool_limit,
-                "max_connections": max_connections,
-            },
+            "REDIS_HOST": redis_host,
+            "REDIS_PASSWORD": redis_password,
+            "REDIS_PORT": redis_port,
+            "REDIS_USER": redis_username,
+            "BROKER_POOL_LIMIT": broker_pool_limit,
+            "MAX_CONNECTIONS": max_connections,
         }
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
-        self.app.conf.broker_pool_limit = self.settings["redis"]["broker_pool_limit"]
+        self.app.conf.broker_pool_limit = broker_pool_limit
         self.app.conf.redis_max_connections = max_connections
 
 
@@ -130,11 +128,10 @@ class Distributaur:
         Raises:
             ValueError: If any required Redis connection parameter is missing.
         """
-        redis_config = self.settings["redis"]
-        host = redis_config["host"]
-        password = redis_config["password"]
-        port = redis_config["port"]
-        username = redis_config["username"]
+        host = self.settings["REDIS_HOST"]
+        password = self.settings["REDIS_PASSWORD"]
+        port = self.settings["REDIS_PORT"]
+        username = self.settings["REDIS_USER"]
 
         if None in [host, password, port, username]:
             raise ValueError("Missing required Redis configuration values")
@@ -508,15 +505,7 @@ class Distributaur:
         json_blob = {
             "client_id": "me",
             "image": image,
-            "env": {
-                "REDIS_HOST": self.settings['redis']['host'],
-                "REDIS_PORT": self.settings['redis']['port'],
-                "REDIS_USER": self.settings['redis']['username'],
-                "REDIS_PASSWORD": self.settings['redis']['password'],
-                "HF_TOKEN": self.get_env('HF_TOKEN'),
-                "HF_REPO_ID": self.get_env('HF_REPO_ID'),
-                "VAST_API_KEY": self.get_env('VAST_API_KEY')
-                },
+            "env": self.settings,
             "disk": 32,  # Set a non-zero value for disk
             "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel=info --concurrency=1",
             "runtype": "ssh ssh_proxy"
@@ -638,16 +627,10 @@ def create_from_config(config_path="config.json", env_path=".env") -> Distributa
         hf_repo_id=settings.get("HF_REPO_ID"),
         hf_token=settings.get("HF_TOKEN"),
         vast_api_key=settings.get("VAST_API_KEY"),
-        redis_host=settings.get("REDIS_HOST", settings.get("redis", {}).get("host")),
-        redis_password=settings.get(
-            "REDIS_PASSWORD", settings.get("redis", {}).get("password")
-        ),
-        redis_port=settings.get("REDIS_PORT", settings.get("redis", {}).get("port")),
-        redis_username=settings.get(
-            "REDIS_USER", settings.get("redis", {}).get("username")
-        ),
-        broker_pool_limit=settings.get(
-            "BROKER_POOL_LIMIT", settings.get("redis", {}).get("broker_pool_limit", 1)
-        ),
+        redis_host=settings.get("REDIS_HOST"),
+        redis_password=settings.get("REDIS_PASSWORD"),
+        redis_port=settings.get("REDIS_PORT"),
+        redis_username=settings.get("REDIS_USER"),
+        broker_pool_limit=settings.get("BROKER_POOL_LIMIT")
     )
     return distributaur
