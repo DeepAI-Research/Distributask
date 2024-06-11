@@ -58,9 +58,6 @@ if __name__ == "__main__":
     print("TOTAL RENTED NODES: ", len(rented_nodes))
     print(rented_nodes)
 
-    distributaur.start_monitoring_server()
-    print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
-
     tasks = []
 
     repo_id = distributaur.get_env("HF_REPO_ID")
@@ -102,7 +99,3 @@ if __name__ == "__main__":
             time.sleep(1)
 
     print("All tasks completed.")
-    print("Shutting down monitoring server in 10 seconds...")
-    time.sleep(10)
-    distributaur.stop_monitoring_server()
-    print("Example completed.")

@@ -41,9 +41,6 @@ if __name__ == "__main__":
             }
         )
 
-    distributaur.start_monitoring_server()
-    print("Monitoring server started. Visit http://localhost:5555 to monitor the job.")
-
     tasks = []
 
     repo_id = distributaur.get_env("HF_REPO_ID")
@@ -146,10 +143,3 @@ if __name__ == "__main__":
             pbar.update(completed_tasks - pbar.n)
             # sleep for a few seconds
             time.sleep(1)
-
-    # while True:
-    #     user_input = input("Press q to quit monitoring: ")
-    #     if user_input.lower() == "q":
-    #         print("Stopping monitoring")
-    #         stop_monitoring_server()
-    #         break
