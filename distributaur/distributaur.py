@@ -561,25 +561,30 @@ class Distributaur:
             max_price (float): The maximum price per hour for the nodes.
             max_nodes (int): The maximum number of nodes to rent.
             image (str): The image to use for the nodes.
+            module_name (str): The name of the module to run on the nodes.
 
         Returns:
             List[Dict]: A list of dictionaries representing the rented nodes.
         """
-        offers = self.search_offers(max_price)
         rented_nodes: List[Dict] = []
-        for offer in offers:
-            if len(rented_nodes) >= max_nodes:
+        while len(rented_nodes) < max_nodes:
+            offers = self.search_offers(max_price)
+            offers = sorted(offers, key=lambda offer: offer["dph_total"])  # Sort offers by price, lowest to highest
+            for offer in offers:
+                if len(rented_nodes) >= max_nodes:
+                    break
+                try:
+                    instance = self.create_instance(offer["id"], image, module_name)
+                    rented_nodes.append(
+                        {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
+                    )
+                except Exception as e:
+                    self.log(f"Error renting node: {str(e)} - searching for new offers", "error")
+                    break  # Break out of the current offer iteration
+            else:
+                # If the loop completes without breaking, all offers have been tried
+                self.log("No more offers available - stopping node rental", "warning")
                 break
-            try:
-                instance = self.create_instance(offer["id"], image, module_name)
-                rented_nodes.append(
-                    {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
-                )
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code in [400, 404]:
-                    pass
-                else:
-                    raise
         atexit.register(self.terminate_nodes, rented_nodes)
         return rented_nodes
 
