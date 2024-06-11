@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the port you want to kill connections for
-PORT=17504
+PORT=54235
 
 # Use lsof to find all PIDs for the given port and store them in an array
 PIDS=($(lsof -i TCP:$PORT -t))
