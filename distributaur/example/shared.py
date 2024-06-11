@@ -1,4 +1,6 @@
 import os
+import random
+import time
 
 from ..distributaur import create_from_config
 
@@ -12,8 +14,7 @@ def example_function(index, arg1, arg2):
     # As an ext
     result = arg1 + arg2
 
-    # sleep for 5 seconds to simulate a long running task
-    # time.sleep(5)
+    time.sleep(random.randint(1, 6))
 
     # save the result to a file
     with open(f"result_{index}.txt", "w") as f:
