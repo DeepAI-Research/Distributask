@@ -114,13 +114,13 @@ if __name__ == "__main__":
                 "-e",
                 f"VAST_API_KEY={vast_api_key}",
                 "-e",
-                f"REDIS_HOST={distributaur.get_env('REDIS_HOST')}",
+                f"REDIS_HOST={distributaur.settings['redis']['host']}",
                 "-e",
-                f"REDIS_PORT={distributaur.get_env('REDIS_PORT')}",
+                f"REDIS_PORT={distributaur.settings['redis']['port']}",
                 "-e",
-                f"REDIS_PASSWORD={distributaur.get_env('REDIS_PASSWORD')}",
+                f"REDIS_PASSWORD={distributaur.settings['redis']['password']}",
                 "-e",
-                f"REDIS_USER={distributaur.get_env('REDIS_USER')}",
+                f"REDIS_USER={distributaur.settings['redis']['username']}",
                 "-e",
                 f"HF_TOKEN={distributaur.get_env('HF_TOKEN')}",
                 "-e",
@@ -135,11 +135,27 @@ if __name__ == "__main__":
 
         atexit.register(kill_docker)
 
+    prev_tasks = 0
+    first_task_done = False
+    queue_start_time = time.time()
     # Wait for the tasks to complete
-    print("Tasks submitted to queue. Waiting for tasks to complete...")
+    print("Tasks submitted to queue. Initializing queue...")
     with tqdm(total=len(tasks), unit="task") as pbar:
         while not all(task.ready() for task in tasks):
-            completed_tasks = sum([task.ready() for task in tasks])
-            pbar.update(completed_tasks - pbar.n)
-            # sleep for a few seconds
-            time.sleep(1)
+            current_tasks = sum([task.ready() for task in tasks])
+            pbar.update(current_tasks - pbar.n)
+
+            if current_tasks > 0:
+                # begin estimation from time of first task
+                if not first_task_done:
+                    first_task_done = True
+                    first_task_start_time = time.time()
+                    print("Initialization completed. Tasks started...")
+
+                # calculate and print total elapsed time and estimated time left
+                end_time = time.time()
+                elapsed_time = end_time - first_task_start_time
+                time_per_tasks = elapsed_time / current_tasks
+                time_left = time_per_tasks * (len(tasks) - current_tasks)
+
+                pbar.set_postfix(elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}")

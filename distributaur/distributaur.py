@@ -272,12 +272,13 @@ class Distributaur:
             },
         }
 
+
         with tempfile.TemporaryDirectory() as temp_dir:
             with Repository(
                 local_dir=temp_dir,
                 clone_from=repo_id,
                 repo_type="dataset",
-                use_auth_token=hf_token,
+                use_auth_token=hf_token
             ).commit(commit_message="Add config.json"):
                 with open(os.path.join(temp_dir, "config.json"), "w") as f:
                     json.dump(config, f, indent=2)
