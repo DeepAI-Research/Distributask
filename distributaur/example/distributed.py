@@ -2,6 +2,7 @@ import os
 import time
 import argparse
 from tqdm import tqdm
+import atexit
 
 from .shared import distributaur, example_function
 
@@ -81,6 +82,10 @@ if __name__ == "__main__":
         # add the task to the list of tasks
         tasks.append(task)
 
+    def tasks_done():
+        print("All tasks successfully completed.")
+
+
     prev_tasks = 0
     first_task_done = False
     queue_start_time = time.time()
@@ -105,3 +110,8 @@ if __name__ == "__main__":
                 time_left = time_per_tasks * (len(tasks) - current_tasks)
 
                 pbar.set_postfix(elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}")
+
+    if current_tasks == args.number_of_tasks:
+        atexit.register(tasks_done)
+
+

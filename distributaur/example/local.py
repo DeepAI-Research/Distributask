@@ -93,7 +93,21 @@ if __name__ == "__main__":
     if docker_installed is False:
         print("Docker is not installed. Starting worker locally.")
         subprocess.Popen(
-            ["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"]
+            ["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info",  
+                "-env",
+                f"VAST_API_KEY={vast_api_key}",
+                "-env",
+                f"REDIS_HOST={distributaur.get_env('REDIS_HOST')}",
+                "-env",
+                f"REDIS_PORT={distributaur.get_env('REDIS_PORT')}",
+                "-env",
+                f"REDIS_PASSWORD={distributaur.get_env('REDIS_PASSWORD')}",
+                "-env",
+                f"REDIS_USER={distributaur.get_env('REDIS_USER')}",
+                "-env",
+                f"HF_TOKEN={distributaur.get_env('HF_TOKEN')}",
+                "-env",
+                f"HF_REPO_ID={repo_id}"]
         )
     else:
         build_process = subprocess.Popen(
@@ -133,7 +147,9 @@ if __name__ == "__main__":
             print("Killing docker container")
             docker_process.terminate()
 
-        atexit.register(kill_docker)
+        def tasks_done():
+            print("All tasks successfully completed.")
+
 
     prev_tasks = 0
     first_task_done = False
@@ -159,3 +175,8 @@ if __name__ == "__main__":
                 time_left = time_per_tasks * (len(tasks) - current_tasks)
 
                 pbar.set_postfix(elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}")
+    
+    if current_tasks == number_of_tasks:
+        atexit.register(tasks_done)
+
+    atexit.register(kill_docker)
