@@ -55,10 +55,10 @@ if __name__ == "__main__":
 
     # Rent the nodes and get the node ids
     # This will return a list of node ids that you can use to execute tasks
-    print("RENTING NODES...")
+    print("Renting nodes...")
     rented_nodes = distributaur.rent_nodes(args.max_price, args.max_nodes, args.docker_image, args.module_name)
 
-    print("TOTAL RENTED NODES: ", len(rented_nodes))
+    print("Total rented nodes: ", len(rented_nodes))
     print(rented_nodes)
 
     tasks = []
@@ -85,6 +85,19 @@ if __name__ == "__main__":
     def tasks_done():
         print("All tasks successfully completed.")
 
+    def terminate_workers():
+        distributaur.terminate_nodes(rented_nodes)
+        print("Workers terminated.")
+
+    def cleanup_redis():
+        patterns = ["celery-task*", "task_status*"]
+        redis_connection = distributaur.get_redis_connection()
+        for pattern in patterns:
+            for key in redis_connection.scan_iter(match=pattern):
+                redis_connection.delete(key)
+
+    atexit.register(terminate_workers)
+    atexit.register(cleanup_redis)
 
     prev_tasks = 0
     first_task_done = False
