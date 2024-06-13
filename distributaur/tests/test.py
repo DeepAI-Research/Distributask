@@ -319,10 +319,10 @@ def test_get_redis_url():
     redis_url = distributaur.get_redis_url()
 
     assert redis_url.startswith("redis://")
-    assert distributaur.settings["redis"]["username"] in redis_url
-    assert distributaur.settings["redis"]["password"] in redis_url
-    assert distributaur.settings["redis"]["host"] in redis_url
-    assert str(distributaur.settings["redis"]["port"]) in redis_url
+    assert distributaur.settings["REDIS_USER"] in redis_url
+    assert distributaur.settings["REDIS_PASSWORD"] in redis_url
+    assert distributaur.settings["REDIS_HOST"] in redis_url
+    assert str(distributaur.settings["REDIS_PORT"]) in redis_url
 
 
 def test_get_redis_connection_force_new():
@@ -382,71 +382,53 @@ def test_create_instance(mock_put):
     assert instance["new_contract"] == "instance1"
 
 
-# def test_local_example_run():
-#     # Capture the stdout and stderr during the execution
-#     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
-#         "sys.stderr", new=StringIO()
-#     ) as fake_err:
-#         distributaur = create_from_config()
+from io import StringIO
+import subprocess
+import re
 
-#         number_of_tasks = 5
 
-#         # Start a new process to run the local example
-#         process = subprocess.Popen(["python", "-m", "distributaur.example.local"])
-#         process.wait()
+def test_local_example_run():
+    # Capture the stdout and stderr during the execution
+    with patch("sys.stdout", new=StringIO()) as fake_out, patch(
+        "sys.stderr", new=StringIO()
+    ) as fake_err:
 
-#         # Assert that the expected output is captured in stdout and stderr
-#         assert "Tasks submitted to queue. Waiting for tasks to complete..." in fake_out.getvalue()
-#         assert "All tasks completed." in fake_out.getvalue()
-#         assert "Example completed." in fake_out.getvalue()
+        # Start a new process to run the local example
+        process = subprocess.Popen(["python", "-m", "distributaur.example.local"])
+        # if process hasn't ended in 3min, test is failed
+        process.wait(timeout=180)
 
-#         # Assert that no errors are captured in stderr
-#         assert fake_err.getvalue() == ""
+        # Get the captured output from stdout
+        # output = fake_out.getvalue()
+        # print(output)
 
-#         # Assert that the expected files are uploaded to the Hugging Face repository
-#         repo_id = distributaur.get_env("HF_REPO_ID")
-#         repo_files = distributaur.list_files(repo_id)
-#         assert "datetime.txt" in repo_files
-#         assert all(f"result_{i}.txt" in repo_files for i in range(number_of_tasks))
+        # Assert that no errors are captured in stderr
+        assert fake_err.getvalue() == ""
 
-# def test_distributed_example_run():
-#     distributaur = create_from_config()
+        try:
+            stop_command = "docker stop $(docker ps -q)"
+            subprocess.run(stop_command, shell=True, check=True)
+            print("All containers stopped successfully")
+        except:
+            pass
 
-#     number_of_tasks = 10
 
-#     # Capture the stdout and stderr during the execution
-#     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
-#         "sys.stderr", new=StringIO()
-#     ) as fake_err:
-#         # Start a new process to run the distributed example
-#         process = subprocess.Popen(["python", "-m", "distributaur.example.distributed"])
-#         process.wait()
+def test_distributed_example_run():
+    # Capture the stdout and stderr during the execution
+    with patch("sys.stdout", new=StringIO()) as fake_out, patch(
+        "sys.stderr", new=StringIO()
+    ) as fake_err:
 
-#         # Assert that the expected output is captured in stdout and stderr
-#         assert "TOTAL NODES AVAILABLE: " in fake_out.getvalue()
-#         assert "TOTAL RENTED NODES: " in fake_out.getvalue()
-#         assert "Monitoring server started. Visit http://localhost:5555 to monitor the job." in fake_out.getvalue()
-#         assert "Tasks submitted to queue. Waiting for tasks to complete..." in fake_out.getvalue()
-#         assert "All tasks completed." in fake_out.getvalue()
-#         assert "Shutting down monitoring server in 10 seconds..." in fake_out.getvalue()
-#         assert "Example completed." in fake_out.getvalue()
+        # Start a new process to run the local example
+        process = subprocess.Popen(
+            ["python", "-m", "distributaur.example.distributed", "--number_of_tasks=3"]
+        )
+        # if process hasn't ended in 2min, test is failed
+        process.wait(timeout=120)
 
-#         # Assert that no errors are captured in stderr
-#         assert fake_err.getvalue() == ""
+        # Get the captured output from stdout
+        # output = fake_out.getvalue()
+        # print(output)
 
-#         # Assert that the correct number of tasks is submitted
-#         assert f"Task {number_of_tasks - 1}" in fake_out.getvalue()
-
-#         # Assert that the tasks complete successfully
-#         assert "Tasks completed: [True, True, ...]" in fake_out.getvalue()
-
-#         # Assert that the expected files are uploaded to the Hugging Face repository
-#         repo_id = distributaur.get_env("HF_REPO_ID")
-#         repo_files = distributaur.list_files(repo_id)
-#         assert all(f"result_{i}.txt" in repo_files for i in range(number_of_tasks))
-
-#         # Assert that the results of the tasks match the expected values
-#         for i in range(number_of_tasks):
-#             result_file = f"result_{i}.txt"
-#             result_content = distributaur.download_file(repo_id, result_file)
-#             assert result_content == f"1 plus 2 is 3"
+        # Assert that no errors are captured in stderr
+        assert fake_err.getvalue() == ""

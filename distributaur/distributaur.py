@@ -14,6 +14,7 @@ from huggingface_hub import HfApi, Repository
 from requests.exceptions import HTTPError
 from celery.utils.log import get_task_logger
 
+
 class Distributaur:
     """
     Configuration management class that stores settings and provides methods to update and retrieve these settings.
@@ -33,7 +34,7 @@ class Distributaur:
         redis_password=os.getenv("REDIS_PASSWORD", ""),
         redis_port=os.getenv("REDIS_PORT", 6379),
         redis_username=os.getenv("REDIS_USER", "default"),
-        broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1)
+        broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
     ) -> None:
         """
         Initialize the Distributaur object with the provided configuration parameters.
@@ -73,21 +74,19 @@ class Distributaur:
             "HF_REPO_ID": hf_repo_id,
             "HF_TOKEN": hf_token,
             "VAST_API_KEY": vast_api_key,
-            "redis": {
-                "host": redis_host,
-                "password": redis_password,
-                "port": redis_port,
-                "username": redis_username,
-                "broker_pool_limit": broker_pool_limit
-            },
+            "REDIS_HOST": redis_host,
+            "REDIS_PASSWORD": redis_password,
+            "REDIS_PORT": redis_port,
+            "REDIS_USER": redis_username,
+            "BROKER_POOL_LIMIT": broker_pool_limit,
         }
-        
-        print('**** SELF.SETTINGS')
+
+        print("**** SELF.SETTINGS")
         print(self.settings)
 
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
-        self.app.conf.broker_pool_limit = self.settings["redis"]["broker_pool_limit"]
+        self.app.conf.broker_pool_limit = self.settings["BROKER_POOL_LIMIT"]
 
         # At exit, close app
         atexit.register(self.app.close)
@@ -128,11 +127,10 @@ class Distributaur:
         Raises:
             ValueError: If any required Redis connection parameter is missing.
         """
-        redis_config = self.settings["redis"]
-        host = redis_config["host"]
-        password = redis_config["password"]
-        port = redis_config["port"]
-        username = redis_config["username"]
+        host = self.settings["REDIS_HOST"]
+        password = self.settings["REDIS_PASSWORD"]
+        port = self.settings["REDIS_PORT"]
+        username = self.settings["REDIS_USER"]
 
         if None in [host, password, port, username]:
             raise ValueError("Missing required Redis configuration values")
@@ -506,18 +504,10 @@ class Distributaur:
         json_blob = {
             "client_id": "me",
             "image": image,
-            "env": {
-                "REDIS_HOST": self.settings['redis']['host'],
-                "REDIS_PORT": self.settings['redis']['port'],
-                "REDIS_USER": self.settings['redis']['username'],
-                "REDIS_PASSWORD": self.settings['redis']['password'],
-                "HF_TOKEN": self.get_env('HF_TOKEN'),
-                "HF_REPO_ID": self.get_env('HF_REPO_ID'),
-                "VAST_API_KEY": self.get_env('VAST_API_KEY')
-                },
+            "env": self.settings,
             "disk": 32,  # Set a non-zero value for disk
             "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel=info --concurrency=1",
-            "runtype": "ssh ssh_proxy"
+            "runtype": "ssh ssh_proxy",
         }
         url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={self.get_env('VAST_API_KEY')}"
         headers = {"Authorization": f"Bearer {self.get_env('VAST_API_KEY')}"}
@@ -547,7 +537,9 @@ class Distributaur:
         response = requests.delete(url, headers=headers)
         return response.json()
 
-    def rent_nodes(self, max_price: float, max_nodes: int, image: str, module_name: str) -> List[Dict]:
+    def rent_nodes(
+        self, max_price: float, max_nodes: int, image: str, module_name: str
+    ) -> List[Dict]:
         """
         Rent nodes on the Vast.ai platform.
 
@@ -568,13 +560,18 @@ class Distributaur:
                     offers = self.search_offers(max_price)
                     break
                 except Exception as e:
-                    self.log(f"Error searching for offers: {str(e)} - retrying in 5 seconds...", "error")
+                    self.log(
+                        f"Error searching for offers: {str(e)} - retrying in 5 seconds...",
+                        "error",
+                    )
                     search_retries -= 1
                     # sleep for 5 seconds before retrying
                     time.sleep(5)
                     continue
-            
-            offers = sorted(offers, key=lambda offer: offer["dph_total"])  # Sort offers by price, lowest to highest
+
+            offers = sorted(
+                offers, key=lambda offer: offer["dph_total"]
+            )  # Sort offers by price, lowest to highest
             for offer in offers:
                 if len(rented_nodes) >= max_nodes:
                     break
@@ -582,10 +579,16 @@ class Distributaur:
                     instance = self.create_instance(offer["id"], image, module_name)
                     atexit.register(self.destroy_instance, instance["new_contract"])
                     rented_nodes.append(
-                        {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
+                        {
+                            "offer_id": offer["id"],
+                            "instance_id": instance["new_contract"],
+                        }
                     )
                 except Exception as e:
-                    self.log(f"Error renting node: {str(e)} - searching for new offers", "error")
+                    self.log(
+                        f"Error renting node: {str(e)} - searching for new offers",
+                        "error",
+                    )
                     break  # Break out of the current offer iteration
             else:
                 # If the loop completes without breaking, all offers have been tried
@@ -608,10 +611,12 @@ class Distributaur:
                     f"Error terminating node: {node['instance_id']}, {str(e)}", "error"
                 )
 
+
 distributaur = None
 
+
 def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
-    print('**** CREATE_FROM_CONFIG')
+    print("**** CREATE_FROM_CONFIG")
     global distributaur
     if distributaur is not None:
         return distributaur
@@ -624,9 +629,7 @@ def create_from_config(config_path="config.json", env_path=".env") -> Distributa
     # Load configuration from JSON file
     try:
         settings = OmegaConf.load(config_path)
-        if not all(settings.values()) or not all(
-            settings.get("redis", {"host": None}).values()
-        ):
+        if not all(settings.values()):
             print(f"Configuration file is missing necessary values.")
     except:
         print(
@@ -641,16 +644,11 @@ def create_from_config(config_path="config.json", env_path=".env") -> Distributa
         hf_repo_id=settings.get("HF_REPO_ID"),
         hf_token=settings.get("HF_TOKEN"),
         vast_api_key=settings.get("VAST_API_KEY"),
-        redis_host=settings.get("REDIS_HOST", settings.get("redis", {}).get("host")),
-        redis_password=settings.get(
-            "REDIS_PASSWORD", settings.get("redis", {}).get("password")
-        ),
-        redis_port=settings.get("REDIS_PORT", settings.get("redis", {}).get("port")),
-        redis_username=settings.get(
-            "REDIS_USER", settings.get("redis", {}).get("username")
-        ),
-        broker_pool_limit=settings.get(
-            "BROKER_POOL_LIMIT", settings.get("redis", {}).get("broker_pool_limit", 1)
-        ),
+        redis_host=settings.get("REDIS_HOST"),
+        redis_password=settings.get("REDIS_PASSWORD"),
+        redis_port=settings.get("REDIS_PORT"),
+        redis_username=settings.get("REDIS_USER"),
+        broker_pool_limit=int(settings.get("BROKER_POOL_LIMIT", 1)),
     )
+
     return distributaur
