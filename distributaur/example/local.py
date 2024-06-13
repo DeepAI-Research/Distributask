@@ -30,7 +30,7 @@ if __name__ == "__main__":
         raise ValueError("Vast API key not found in configuration.")
 
     job_configs = []
-    number_of_tasks = 5
+    number_of_tasks = 3
 
     # Submit params for the job
     for i in range(number_of_tasks):
@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     # first, check if docker is installed
     try:
-        subprocess.run(["docker", "--version"], check=True)
+        subprocess.run(["docker", "version"], check=True)
         docker_installed = True
     except Exception as e:
         print("Docker is not installed. Starting worker locally.")
@@ -92,23 +92,28 @@ if __name__ == "__main__":
 
     if docker_installed is False:
         print("Docker is not installed. Starting worker locally.")
-        subprocess.Popen(
-            ["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info",  
-                "-env",
-                f"VAST_API_KEY={vast_api_key}",
-                "-env",
-                f"REDIS_HOST={distributaur.get_env('REDIS_HOST')}",
-                "-env",
-                f"REDIS_PORT={distributaur.get_env('REDIS_PORT')}",
-                "-env",
-                f"REDIS_PASSWORD={distributaur.get_env('REDIS_PASSWORD')}",
-                "-env",
-                f"REDIS_USER={distributaur.get_env('REDIS_USER')}",
-                "-env",
-                f"HF_TOKEN={distributaur.get_env('HF_TOKEN')}",
-                "-env",
-                f"HF_REPO_ID={repo_id}"]
-        )
+        celery_worker = subprocess.Popen(
+            ["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"])  
+                # "--env",
+                # f"VAST_API_KEY={vast_api_key}",
+                # "--env",
+                # f"REDIS_HOST={distributaur.get_env('REDIS_HOST')}",
+                # "--env",
+                # f"REDIS_PORT={distributaur.get_env('REDIS_PORT')}",
+                # "--env",
+                # f"REDIS_PASSWORD={distributaur.get_env('REDIS_PASSWORD')}",
+                # "--env",
+                # f"REDIS_USER={distributaur.get_env('REDIS_USER')}",
+                # "--env",
+                # f"HF_TOKEN={distributaur.get_env('HF_TOKEN')}",
+                # "--env",
+                # f"HF_REPO_ID={repo_id}"])
+        # with open('worker.log', 'w') as log_file:
+        #     subprocess.Popen(["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"], stdout=log_file, stderr=log_file)
+
+
+    # ["python", "-m", "celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"]
+
     else:
         build_process = subprocess.Popen(
             [
@@ -146,10 +151,20 @@ if __name__ == "__main__":
         def kill_docker():
             print("Killing docker container")
             docker_process.terminate()
+    
+        atexit.register(kill_docker)
 
-        def tasks_done():
-            print("All tasks successfully completed.")
+    def tasks_done():
+        print("All tasks successfully completed.")
 
+    def cleanup_redis():
+        patterns = ["celery-task*", "task_status*"]
+        redis_connection = distributaur.get_redis_connection()
+        for pattern in patterns:
+            for key in redis_connection.scan_iter(match=pattern):
+                redis_connection.delete(key)
+
+    atexit.register(cleanup_redis)
 
     prev_tasks = 0
     first_task_done = False
@@ -178,5 +193,4 @@ if __name__ == "__main__":
     
     if current_tasks == number_of_tasks:
         atexit.register(tasks_done)
-
-    atexit.register(kill_docker)
+        celery_worker.terminate()

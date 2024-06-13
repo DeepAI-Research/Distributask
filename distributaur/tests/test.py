@@ -393,22 +393,22 @@ def test_local_example_run():
         
         # Start a new process to run the local example
         process = subprocess.Popen(["python", "-m", "distributaur.example.local"])
-        # if process hasn't ended in 60s, test is failed
+        # if process hasn't ended in 1min, test is failed
         process.wait(timeout=60)
 
         # Get the captured output from stdout
         # output = fake_out.getvalue()
         # print(output)
 
-
-
-
         # Assert that no errors are captured in stderr
         assert fake_err.getvalue() == ""
 
-        stop_command = "docker stop $(docker ps -q)"
-        subprocess.run(stop_command, shell=True, check=True)
-        print("All containers stopped successfully")
+        try:
+            stop_command = "docker stop $(docker ps -q)"
+            subprocess.run(stop_command, shell=True, check=True)
+            print("All containers stopped successfully")
+        except:
+            pass
 
 def test_distributed_example_run():
     # Capture the stdout and stderr during the execution
@@ -418,7 +418,7 @@ def test_distributed_example_run():
 
         # Start a new process to run the local example
         process = subprocess.Popen(["python", "-m", "distributaur.example.distributed", "--number_of_tasks=3"])
-        # if process hasn't ended in 60s, test is failed
+        # if process hasn't ended in 2min, test is failed
         process.wait(timeout=120)
 
         # Get the captured output from stdout
