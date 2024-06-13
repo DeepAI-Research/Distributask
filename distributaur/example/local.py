@@ -73,13 +73,8 @@ if __name__ == "__main__":
         tasks.append(task)
 
     # start the worker
-    # first, try starting the docker container
-    # if that errors, start the worker locally
-
-    # TODO:
 
     docker_installed = False
-
     # first, check if docker is installed
     try:
         subprocess.run(["docker", "version"], check=True)
@@ -89,30 +84,13 @@ if __name__ == "__main__":
         print(e)
 
     docker_process = None
-
+    # if docker is installed, start local docker worker
+    # if docker is not installed, start local celery worker
     if docker_installed is False:
         print("Docker is not installed. Starting worker locally.")
         celery_worker = subprocess.Popen(
-            ["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"])  
-                # "--env",
-                # f"VAST_API_KEY={vast_api_key}",
-                # "--env",
-                # f"REDIS_HOST={distributaur.get_env('REDIS_HOST')}",
-                # "--env",
-                # f"REDIS_PORT={distributaur.get_env('REDIS_PORT')}",
-                # "--env",
-                # f"REDIS_PASSWORD={distributaur.get_env('REDIS_PASSWORD')}",
-                # "--env",
-                # f"REDIS_USER={distributaur.get_env('REDIS_USER')}",
-                # "--env",
-                # f"HF_TOKEN={distributaur.get_env('HF_TOKEN')}",
-                # "--env",
-                # f"HF_REPO_ID={repo_id}"])
-        # with open('worker.log', 'w') as log_file:
-        #     subprocess.Popen(["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"], stdout=log_file, stderr=log_file)
-
-
-    # ["python", "-m", "celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"]
+            ["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"]
+        )
 
     else:
         build_process = subprocess.Popen(
@@ -151,7 +129,7 @@ if __name__ == "__main__":
         def kill_docker():
             print("Killing docker container")
             docker_process.terminate()
-    
+
         atexit.register(kill_docker)
 
     def tasks_done():
@@ -189,8 +167,10 @@ if __name__ == "__main__":
                 time_per_tasks = elapsed_time / current_tasks
                 time_left = time_per_tasks * (len(tasks) - current_tasks)
 
-                pbar.set_postfix(elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}")
-    
+                pbar.set_postfix(
+                    elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}"
+                )
+
     if current_tasks == number_of_tasks:
         atexit.register(tasks_done)
         celery_worker.terminate()

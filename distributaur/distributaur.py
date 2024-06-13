@@ -14,6 +14,7 @@ from huggingface_hub import HfApi, Repository
 from requests.exceptions import HTTPError
 from celery.utils.log import get_task_logger
 
+
 class Distributaur:
     """
     Configuration management class that stores settings and provides methods to update and retrieve these settings.
@@ -33,7 +34,7 @@ class Distributaur:
         redis_password=os.getenv("REDIS_PASSWORD", ""),
         redis_port=os.getenv("REDIS_PORT", 6379),
         redis_username=os.getenv("REDIS_USER", "default"),
-        broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1)
+        broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
     ) -> None:
         """
         Initialize the Distributaur object with the provided configuration parameters.
@@ -77,10 +78,10 @@ class Distributaur:
             "REDIS_PASSWORD": redis_password,
             "REDIS_PORT": redis_port,
             "REDIS_USER": redis_username,
-            "BROKER_POOL_LIMIT": broker_pool_limit
+            "BROKER_POOL_LIMIT": broker_pool_limit,
         }
 
-        print('**** SELF.SETTINGS')
+        print("**** SELF.SETTINGS")
         print(self.settings)
 
         redis_url = self.get_redis_url()
@@ -269,13 +270,12 @@ class Distributaur:
             },
         }
 
-
         with tempfile.TemporaryDirectory() as temp_dir:
             with Repository(
                 local_dir=temp_dir,
                 clone_from=repo_id,
                 repo_type="dataset",
-                use_auth_token=hf_token
+                use_auth_token=hf_token,
             ).commit(commit_message="Add config.json"):
                 with open(os.path.join(temp_dir, "config.json"), "w") as f:
                     json.dump(config, f, indent=2)
@@ -507,7 +507,7 @@ class Distributaur:
             "env": self.settings,
             "disk": 32,  # Set a non-zero value for disk
             "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel=info --concurrency=1",
-            "runtype": "ssh ssh_proxy"
+            "runtype": "ssh ssh_proxy",
         }
         url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={self.get_env('VAST_API_KEY')}"
         headers = {"Authorization": f"Bearer {self.get_env('VAST_API_KEY')}"}
@@ -537,7 +537,9 @@ class Distributaur:
         response = requests.delete(url, headers=headers)
         return response.json()
 
-    def rent_nodes(self, max_price: float, max_nodes: int, image: str, module_name: str) -> List[Dict]:
+    def rent_nodes(
+        self, max_price: float, max_nodes: int, image: str, module_name: str
+    ) -> List[Dict]:
         """
         Rent nodes on the Vast.ai platform.
 
@@ -558,13 +560,18 @@ class Distributaur:
                     offers = self.search_offers(max_price)
                     break
                 except Exception as e:
-                    self.log(f"Error searching for offers: {str(e)} - retrying in 5 seconds...", "error")
+                    self.log(
+                        f"Error searching for offers: {str(e)} - retrying in 5 seconds...",
+                        "error",
+                    )
                     search_retries -= 1
                     # sleep for 5 seconds before retrying
                     time.sleep(5)
                     continue
-            
-            offers = sorted(offers, key=lambda offer: offer["dph_total"])  # Sort offers by price, lowest to highest
+
+            offers = sorted(
+                offers, key=lambda offer: offer["dph_total"]
+            )  # Sort offers by price, lowest to highest
             for offer in offers:
                 if len(rented_nodes) >= max_nodes:
                     break
@@ -572,10 +579,16 @@ class Distributaur:
                     instance = self.create_instance(offer["id"], image, module_name)
                     atexit.register(self.destroy_instance, instance["new_contract"])
                     rented_nodes.append(
-                        {"offer_id": offer["id"], "instance_id": instance["new_contract"]}
+                        {
+                            "offer_id": offer["id"],
+                            "instance_id": instance["new_contract"],
+                        }
                     )
                 except Exception as e:
-                    self.log(f"Error renting node: {str(e)} - searching for new offers", "error")
+                    self.log(
+                        f"Error renting node: {str(e)} - searching for new offers",
+                        "error",
+                    )
                     break  # Break out of the current offer iteration
             else:
                 # If the loop completes without breaking, all offers have been tried
@@ -598,10 +611,12 @@ class Distributaur:
                     f"Error terminating node: {node['instance_id']}, {str(e)}", "error"
                 )
 
+
 distributaur = None
 
+
 def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
-    print('**** CREATE_FROM_CONFIG')
+    print("**** CREATE_FROM_CONFIG")
     global distributaur
     if distributaur is not None:
         return distributaur
@@ -633,7 +648,7 @@ def create_from_config(config_path="config.json", env_path=".env") -> Distributa
         redis_password=settings.get("REDIS_PASSWORD"),
         redis_port=settings.get("REDIS_PORT"),
         redis_username=settings.get("REDIS_USER"),
-        broker_pool_limit=int(settings.get("BROKER_POOL_LIMIT", 1))
+        broker_pool_limit=int(settings.get("BROKER_POOL_LIMIT", 1)),
     )
 
     return distributaur

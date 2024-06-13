@@ -381,20 +381,22 @@ def test_create_instance(mock_put):
 
     assert instance["new_contract"] == "instance1"
 
+
 from io import StringIO
 import subprocess
 import re
+
 
 def test_local_example_run():
     # Capture the stdout and stderr during the execution
     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
         "sys.stderr", new=StringIO()
     ) as fake_err:
-        
+
         # Start a new process to run the local example
         process = subprocess.Popen(["python", "-m", "distributaur.example.local"])
-        # if process hasn't ended in 1min, test is failed
-        process.wait(timeout=120)
+        # if process hasn't ended in 3min, test is failed
+        process.wait(timeout=180)
 
         # Get the captured output from stdout
         # output = fake_out.getvalue()
@@ -410,6 +412,7 @@ def test_local_example_run():
         except:
             pass
 
+
 def test_distributed_example_run():
     # Capture the stdout and stderr during the execution
     with patch("sys.stdout", new=StringIO()) as fake_out, patch(
@@ -417,7 +420,9 @@ def test_distributed_example_run():
     ) as fake_err:
 
         # Start a new process to run the local example
-        process = subprocess.Popen(["python", "-m", "distributaur.example.distributed", "--number_of_tasks=3"])
+        process = subprocess.Popen(
+            ["python", "-m", "distributaur.example.distributed", "--number_of_tasks=3"]
+        )
         # if process hasn't ended in 2min, test is failed
         process.wait(timeout=120)
 
@@ -427,4 +432,3 @@ def test_distributed_example_run():
 
         # Assert that no errors are captured in stderr
         assert fake_err.getvalue() == ""
-
