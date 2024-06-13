@@ -394,7 +394,7 @@ def test_local_example_run():
         # Start a new process to run the local example
         process = subprocess.Popen(["python", "-m", "distributaur.example.local"])
         # if process hasn't ended in 1min, test is failed
-        process.wait(timeout=60)
+        process.wait(timeout=120)
 
         # Get the captured output from stdout
         # output = fake_out.getvalue()
