@@ -315,7 +315,7 @@ class Distributaur:
                 "error",
             )
 
-    def upload_directory(self, output_dir: str, repo_dir: str) -> None:
+    def upload_directory(self, output_dir: str, repo_dir: str = None) -> None:
         """
         Upload the rendered outputs to a Huggingface repository.
 
