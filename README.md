@@ -9,6 +9,10 @@ A super simple way to distribute rendering tasks across multiple machines.
 [![License](https://img.shields.io/badge/License-MIT-blue)](https://github.com/RaccoonResearch/distributaur/blob/main/LICENSE)
 [![forks - distributaur](https://img.shields.io/github/forks/RaccoonResearch/distributaur?style=social)](https://github.com/RaccoonResearch/distributaur)
 
+# Description
+
+Distributaur uses Celery to create a task queue, and each task is defined by some function. Each task is sent to a worker using Redis as a broker. Once the task is complete, the worker uploads the result to a Huggingface dataset.
+
 # Installation
 
 ```bash
@@ -50,6 +54,7 @@ REDIS_PASSWORD=password
 VAST_API_KEY=your_vast_api_key
 HF_TOKEN=hf_token
 HF_REPO_ID=YourHFRepo/test_dataset
+BROKER_POOL_LIMIT=your_broker_pool_limit
 ```
 
 ## Getting Started
@@ -59,7 +64,7 @@ HF_REPO_ID=YourHFRepo/test_dataset
 To run an example task and see Distributaur in action, you can execute the example script provided in the project:
 
 ```bash
-# To run the example task locally
+# To run the example task locally using either a Docker container or a celery worker
 python -m distributaur.example.local
 
 # To run the example task on VAST.ai ("kitchen sink" example)

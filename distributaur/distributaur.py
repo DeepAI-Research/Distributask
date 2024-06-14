@@ -616,7 +616,14 @@ distributaur = None
 
 
 def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
-    print("**** CREATE_FROM_CONFIG")
+    """
+    Create distributaur instance using settings using config that merges config.json and .env files present in distributaur directory.
+
+    Args:
+        config_path (str): path to config.json file 
+        env_path (str): path to .env file
+    """
+    print("**** CREATE_FROM_CONFIG ****")
     global distributaur
     if distributaur is not None:
         return distributaur
