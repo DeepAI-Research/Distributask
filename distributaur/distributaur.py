@@ -481,7 +481,7 @@ class Distributaur:
             )
             raise
 
-    def create_instance(self, offer_id: str, image: str, module_name: str) -> Dict:
+    def create_instance(self, offer_id: str, image: str, module_name: str, loglevel: str = "info") -> Dict:
         """
         Create an instance on the Vast.ai platform.
 
@@ -489,6 +489,7 @@ class Distributaur:
             offer_id (str): The ID of the offer to create the instance from.
             image (str): The image to use for the instance. (example: RaccoonResearch/distributaur-test-worker)
             module_name (str): The name of the module to run on the instance (example: distributaur.example.worker)
+            loglevel (str): log level of celery worker
 
         Returns:
             Dict: A dictionary representing the created instance.
@@ -506,7 +507,7 @@ class Distributaur:
             "image": image,
             "env": self.settings,
             "disk": 32,  # Set a non-zero value for disk
-            "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel=info --concurrency=1",
+            "onstart": f"export PATH=$PATH:/ && cd ../ && celery -A {module_name} worker --loglevel={loglevel} --concurrency=1",
             "runtype": "ssh ssh_proxy",
         }
         url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={self.get_env('VAST_API_KEY')}"
