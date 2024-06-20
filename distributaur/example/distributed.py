@@ -123,9 +123,7 @@ if __name__ == "__main__":
     atexit.register(terminate_workers)
     atexit.register(cleanup_redis)
 
-    prev_tasks = 0
     first_task_done = False
-    queue_start_time = time.time()
     # Wait for the tasks to complete
     print("Tasks submitted to queue. Initializing queue...")
     with tqdm(total=len(tasks), unit="task") as pbar:
