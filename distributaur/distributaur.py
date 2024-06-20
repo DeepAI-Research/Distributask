@@ -542,7 +542,7 @@ class Distributaur:
         return response.json()
 
     def rent_nodes(
-        self, max_price: float, max_nodes: int, image: str, module_name: str
+        self, max_price: float, max_nodes: int, image: str, module_name: str, command: str = None
     ) -> List[Dict]:
         """
         Rent nodes on the Vast.ai platform.
@@ -580,7 +580,7 @@ class Distributaur:
                 if len(rented_nodes) >= max_nodes:
                     break
                 try:
-                    instance = self.create_instance(offer["id"], image, module_name)
+                    instance = self.create_instance(offer["id"], image, module_name, command)
                     atexit.register(self.destroy_instance, instance["new_contract"])
                     rented_nodes.append(
                         {
