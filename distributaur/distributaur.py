@@ -181,7 +181,7 @@ class Distributaur:
             args_json (str): JSON string representation of the arguments for the function.
 
         Returns:
-            any: The result of the function execution.
+            any: task object, represents result of function
 
         Raises:
             ValueError: If the function name is not registered.
@@ -194,7 +194,7 @@ class Distributaur:
             func = self.registered_functions[func_name]
             args = json.loads(args_json)
             result = func(**args)
-            self.update_function_status(self.call_function_task.request.id, "completed")
+            # self.update_function_status(self.call_function_task.request.id, "success")
 
             return result
         except Exception as e:
@@ -227,8 +227,13 @@ class Distributaur:
             celery.result.AsyncResult: An object representing the asynchronous result of the task.
         """
         args_json = json.dumps(args)
-        return self.call_function_task.delay(func_name, args_json)
+        print("obj", self.call_function_task)
+        print("type", type(self.call_function_task))
+        self.log("obj", self.call_function_task)
+        self.log("type", type(self.call_function_task))
 
+        return self.call_function_task.delay(func_name, args_json)
+    
     def update_function_status(self, task_id: str, status: str) -> None:
         """
         Update the status of a function task in Redis.
@@ -237,8 +242,9 @@ class Distributaur:
             task_id (str): The ID of the task.
             status (str): The new status to set.
         """
-        redis_client = self.get_redis_connection()
-        redis_client.set(f"task_status:{task_id}", status)
+        # redis_client = self.get_redis_connection()
+        # redis_client.set(f"task_status:{task_id}", status)
+
 
     def initialize_dataset(self, **kwargs) -> None:
         """Initialize a Hugging Face repository if it doesn't exist."""
