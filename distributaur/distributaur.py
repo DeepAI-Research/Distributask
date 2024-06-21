@@ -229,8 +229,8 @@ class Distributaur:
         args_json = json.dumps(args)
         print("obj", self.call_function_task)
         print("type", type(self.call_function_task))
-        self.log("obj", self.call_function_task)
-        self.log("type", type(self.call_function_task))
+        self.log(self.call_function_task)
+        self.log(self.call_function_task)
 
         return self.call_function_task.delay(func_name, args_json)
     
