@@ -89,7 +89,23 @@ class Distributaur:
         self.app.conf.broker_pool_limit = self.settings["BROKER_POOL_LIMIT"]
 
         # At exit, close app
+
+        def cleanup_redis():
+            patterns = ["celery-task*", "task_status*"]
+            redis_connection = self.get_redis_connection()
+            for pattern in patterns:
+                for key in redis_connection.scan_iter(match=pattern):
+                    redis_connection.delete(key)
+            redis_connection.close()
+            print("Redis cleared")
+
+        def cleanup_celery():
+            self.app.control.purge()
+            print("Celery queue cleared")
+
         atexit.register(self.app.close)
+        atexit.register(cleanup_redis)
+        atexit.register(cleanup_celery)
 
         self.app.task_acks_late = True
         self.app.worker_prefetch_multiplier = 1
@@ -155,7 +171,6 @@ class Distributaur:
             self.pool = ConnectionPool.from_url(redis_url)
             self.redis_client = Redis(connection_pool=self.pool)
             atexit.register(self.pool.disconnect)
-            atexit.register(self.redis_client.close)
 
         return self.redis_client
 
@@ -194,7 +209,10 @@ class Distributaur:
             func = self.registered_functions[func_name]
             args = json.loads(args_json)
             result = func(**args)
-            # self.update_function_status(self.call_function_task.request.id, "success")
+
+            the_id = self.call_function_task.request.id
+            self.log(f"the id {the_id}")
+            self.update_function_status(self.call_function_task.request.id, "success")
 
             return result
         except Exception as e:
@@ -227,13 +245,9 @@ class Distributaur:
             celery.result.AsyncResult: An object representing the asynchronous result of the task.
         """
         args_json = json.dumps(args)
-        print("obj", self.call_function_task)
-        print("type", type(self.call_function_task))
-        self.log(self.call_function_task)
-        self.log(self.call_function_task)
+        async_result = self.call_function_task.delay(func_name, args_json)
+        return async_result
 
-        return self.call_function_task.delay(func_name, args_json)
-    
     def update_function_status(self, task_id: str, status: str) -> None:
         """
         Update the status of a function task in Redis.
@@ -242,9 +256,8 @@ class Distributaur:
             task_id (str): The ID of the task.
             status (str): The new status to set.
         """
-        # redis_client = self.get_redis_connection()
-        # redis_client.set(f"task_status:{task_id}", status)
-
+        redis_client = self.get_redis_connection()
+        redis_client.set(f"task_status:{task_id}", status)
 
     def initialize_dataset(self, **kwargs) -> None:
         """Initialize a Hugging Face repository if it doesn't exist."""
@@ -487,7 +500,9 @@ class Distributaur:
             )
             raise
 
-    def create_instance(self, offer_id: str, image: str, module_name: str, command: str = None) -> Dict:
+    def create_instance(
+        self, offer_id: str, image: str, module_name: str, command: str = None
+    ) -> Dict:
         """
         Create an instance on the Vast.ai platform.
 
@@ -548,7 +563,12 @@ class Distributaur:
         return response.json()
 
     def rent_nodes(
-        self, max_price: float, max_nodes: int, image: str, module_name: str, command: str = None
+        self,
+        max_price: float,
+        max_nodes: int,
+        image: str,
+        module_name: str,
+        command: str = None,
     ) -> List[Dict]:
         """
         Rent nodes on the Vast.ai platform.
@@ -586,7 +606,9 @@ class Distributaur:
                 if len(rented_nodes) >= max_nodes:
                     break
                 try:
-                    instance = self.create_instance(offer["id"], image, module_name, command)
+                    instance = self.create_instance(
+                        offer["id"], image, module_name, command
+                    )
                     atexit.register(self.destroy_instance, instance["new_contract"])
                     rented_nodes.append(
                         {
@@ -630,7 +652,7 @@ def create_from_config(config_path="config.json", env_path=".env") -> Distributa
     Create distributaur instance using settings using config that merges config.json and .env files present in distributaur directory.
 
     Args:
-        config_path (str): path to config.json file 
+        config_path (str): path to config.json file
         env_path (str): path to .env file
     """
     print("**** CREATE_FROM_CONFIG ****")
