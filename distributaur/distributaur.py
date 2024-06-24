@@ -135,7 +135,7 @@ class Distributaur:
         """
         Retrive settings of distributaur instance.
         """
-        return self.settings        
+        return self.settings
 
     def get_redis_url(self) -> str:
         """
@@ -335,46 +335,35 @@ class Distributaur:
                 "error",
             )
 
-    def upload_directory(self, output_dir: str, repo_dir: str = None) -> None:
+    def upload_directory(self, dir_path: str) -> None:
         """
-        Upload the rendered outputs to a Huggingface repository.
+        Upload a directory to a Hugging Face repository.
 
         Args:
-            output_dir (str): The local directory containing the files to upload.
-            repo_dir (str): The directory path in the repository where the files will be uploaded.
+            dir_path (str): The path of the directory to upload.
 
         Raises:
-            Exception: If an error occurs during the upload process for any file.
+            Exception: If an error occurs during the upload process.
+
         """
         hf_token = self.settings.get("HF_TOKEN")
         repo_id = self.settings.get("HF_REPO_ID")
 
-        api = HfApi(token=hf_token)
+        try:
+            self.log(f"Uploading {dir_path} to Hugging Face repo {repo_id}")
 
-        for root, dirs, files in os.walk(output_dir):
-            for file in files:
-                local_path = os.path.join(root, file)
-                path_in_repo = os.path.join(repo_dir, file) if repo_dir else file
-
-                try:
-                    self.log(
-                        f"Uploading {local_path} to Hugging Face repo {repo_id} at {path_in_repo}"
-                    )
-                    api.upload_file(
-                        path_or_fileobj=local_path,
-                        path_in_repo=path_in_repo,
-                        repo_id=repo_id,
-                        token=hf_token,
-                        repo_type="dataset",
-                    )
-                    self.log(
-                        f"Uploaded {local_path} to Hugging Face repo {repo_id} at {path_in_repo}"
-                    )
-                except Exception as e:
-                    self.log(
-                        f"Failed to upload {local_path} to Hugging Face repo {repo_id} at {path_in_repo}: {e}",
-                        "error",
-                    )
+            api = HfApi(token=hf_token)
+            api.upload_folder(
+                folder_path=dir_path,
+                repo_id=repo_id,
+                repo_type="dataset",
+            )
+            self.log(f"Uploaded {dir_path} to Hugging Face repo {repo_id}")
+        except Exception as e:
+            self.log(
+                f"Failed to upload {dir_path} to Hugging Face repo {repo_id}: {e}",
+                "error",
+            )
 
     def delete_file(self, repo_id: str, path_in_repo: str) -> None:
         """
