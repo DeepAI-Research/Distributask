@@ -81,14 +81,9 @@ class Distributaur:
             "BROKER_POOL_LIMIT": broker_pool_limit,
         }
 
-        print("**** SELF.SETTINGS")
-        print(self.settings)
-
         redis_url = self.get_redis_url()
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
         self.app.conf.broker_pool_limit = self.settings["BROKER_POOL_LIMIT"]
-
-        # At exit, close app
 
         def cleanup_redis():
             patterns = ["celery-task*", "task_status*"]
@@ -103,11 +98,14 @@ class Distributaur:
             self.app.control.purge()
             print("Celery queue cleared")
 
+        # At exit, close Celery instance, delete all previous task info from queue and Redis, and close Redis
         atexit.register(self.app.close)
         atexit.register(cleanup_redis)
         atexit.register(cleanup_celery)
 
+        # Tasks are acknowledged after they have been executed
         self.app.task_acks_late = True
+        # Worker only fetches one task at a time
         self.app.worker_prefetch_multiplier = 1
         self.call_function_task = self.app.task(
             bind=True, name="call_function_task", max_retries=3, default_retry_delay=30
@@ -132,6 +130,12 @@ class Distributaur:
         """
         logger = get_task_logger(__name__)
         getattr(logger, level)(message)
+
+    def get_settings(self) -> str:
+        """
+        Retrive settings of distributaur instance.
+        """
+        return self.settings        
 
     def get_redis_url(self) -> str:
         """
@@ -209,9 +213,6 @@ class Distributaur:
             func = self.registered_functions[func_name]
             args = json.loads(args_json)
             result = func(**args)
-
-            the_id = self.call_function_task.request.id
-            self.log(f"the id {the_id}")
             self.update_function_status(self.call_function_task.request.id, "success")
 
             return result
