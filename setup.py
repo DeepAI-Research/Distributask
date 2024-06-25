@@ -30,7 +30,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/RaccoonResearch/distributaur",
     author="Raccoon Research",
-    author_email="shawmakesmagic@gmail.com",
+    author_email="team@deepai.org",
     license="MIT",
     packages=find_packages(),
     install_requires=install_requires,
