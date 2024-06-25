@@ -14,8 +14,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_price",
         type=float,
-        default=0.15,
-        help="Max price per node, in dollars (default: 0.25)",
+        default=0.20,
+        help="Max price per node, in dollars (default: 0.20)",
     )
     parser.add_argument(
         "--max_nodes",
