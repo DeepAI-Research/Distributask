@@ -1,6 +1,8 @@
-# distributaur <a href="https://discord.gg/JMfbmHdPNB"><img style="float: right" src="https://dcbadge.vercel.app/api/server/JMfbmHdPNB" alt=""></a> <a href="https://github.com/RaccoonResearch/distributaur/stargazers"><img style="float: right; padding: 5px;" src="https://img.shields.io/github/stars/RaccoonResearch/distributaur?style=social" alt=""></a>
+# distributaur 
 
-A super simple way to distribute rendering tasks across multiple machines.
+<!-- <a href="https://discord.gg/JMfbmHdPNB"><img style="float: right" src="https://dcbadge.vercel.app/api/server/JMfbmHdPNB" alt=""></a> <a href="https://github.com/RaccoonResearch/distributaur/stargazers"><img style="float: right; padding: 5px;" src="https://img.shields.io/github/stars/RaccoonResearch/distributaur?style=social" alt=""></a> -->
+
+A simple way to distribute rendering tasks across multiple machines.
 
 <img src="docs/assets/banner.png">
 
@@ -11,7 +13,7 @@ A super simple way to distribute rendering tasks across multiple machines.
 
 # Description
 
-Distributaur uses Celery to create a task queue, and each task is defined by some function. Each task is sent to a worker using Redis as a broker. Once the task is complete, the worker uploads the result to a Huggingface dataset.
+Distributaur distributes rendering using the Celery task queue. The queued tasks are then passed to workers using Redis as a message broker. Once the worker has completed the task, the result is uploaded to Huggingface.
 
 # Installation
 
@@ -44,17 +46,17 @@ python setup.py install
 
 ### Configuration
 
-Create a `.env` file in the root directory of your project or set environment variables to match your setup:
+Create a `.env` file in the root directory of your project or set environment variables to create your desired setup:
 
 ```plaintext
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_USER=user
-REDIS_PASSWORD=password
-VAST_API_KEY=your_vast_api_key
-HF_TOKEN=hf_token
-HF_REPO_ID=YourHFRepo/test_dataset
-BROKER_POOL_LIMIT=your_broker_pool_limit
+REDIS_HOST=redis_host
+REDIS_PORT=redis_port
+REDIS_USER=redis_user
+REDIS_PASSWORD=redis_password
+VAST_API_KEY=your_vastai_api_key
+HF_TOKEN=your_huggingface_token
+HF_REPO_ID=your_huggingface_repo
+BROKER_POOL_LIMIT=broker_pool_limit
 ```
 
 ## Getting Started
@@ -64,15 +66,24 @@ BROKER_POOL_LIMIT=your_broker_pool_limit
 To run an example task and see Distributaur in action, you can execute the example script provided in the project:
 
 ```bash
-# To run the example task locally using either a Docker container or a celery worker
+# To run the example task locally using either a Docker container or a Celery worker
 python -m distributaur.example.local
 
-# To run the example task on VAST.ai ("kitchen sink" example)
+# To run the example task on vast.ai ("kitchen sink" example)
 python -m distributaur.example.distributed
 
 ```
 
 This script configures the environment, registers a sample function, dispatches a task, and monitors its execution.
+
+### Command Options
+
+- `--max_price` is the max price (in $/hour) a node can be be rented for.
+- `--max_nodes` is the max number of vast.ai nodes that can be rented.
+- `--docker_image` is the name of the docker image to load to the vast.ai node.
+- `--module_name` is the name of the celery worker
+- `--number_of_tasks` is the number of example tasks that will be added to the queue and done by the workers.
+
 
 ## API Reference
 
@@ -113,3 +124,26 @@ Contributions are welcome! For major changes, please open an issue first to disc
 ## License
 
 This project is licensed under the MIT License - see the `LICENSE` file for details.
+
+## Citation
+
+```bibtex
+@misc{distributaur,
+  author = {Raccoon Research},
+  title = {distributaur: a simple way to distribute rendering tasks across mulitiple machines},
+  year = {2024},
+  publisher = {GitHub},
+  howpublished = {\url{https://github.com/RaccoonResearch/distributaur}}
+}
+```
+
+## Contributors
+
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/lalalune"><img src="https://avatars.githubusercontent.com/u/18633264?v=4?s=100" width="100px;" alt="M̵̞̗̝̼̅̏̎͝Ȯ̴̝̻̊̃̋̀Õ̷̼͋N̸̩̿͜ ̶̜̠̹̼̩͒"/><br /><sub><b>M̵̞̗̝̼̅̏̎͝Ȯ̴̝̻̊̃̋̀Õ̷̼͋N̸̩̿͜ ̶̜̠̹̼̩͒</b></sub></a><br />
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/antbaez9"><img src="https://avatars.githubusercontent.com/u/97056049?v=4?s=100" width="100px;" alt="Anthony"/><br /><sub><b>Anthony</b></sub></a><br /></td>
+    </tr>
+  </tbody>
+</table>
