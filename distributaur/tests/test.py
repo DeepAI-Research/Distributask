@@ -172,7 +172,7 @@ def test_upload_directory():
         repo_path = distributaur.get_env("HF_REPO_PATH", "data")
 
         # Upload the directory to the repository
-        distributaur.upload_directory(temp_dir, repo_path)
+        distributaur.upload_directory(temp_dir)
 
         # Check if the files exist in the Hugging Face repository
         api = HfApi(token=hf_token)
@@ -180,7 +180,8 @@ def test_upload_directory():
             repo_id=repo_id, repo_type="dataset", token=hf_token
         )
         for file in test_files:
-            assert os.path.join(repo_path, file) in repo_files
+            print(file)
+            assert file in repo_files
 
         for file in test_files:
             os.remove(os.path.join(temp_dir, file))
