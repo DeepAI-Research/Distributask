@@ -82,10 +82,14 @@ class Distributaur:
         }
 
         redis_url = self.get_redis_url()
+        # start Celery app instance
         self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
         self.app.conf.broker_pool_limit = self.settings["BROKER_POOL_LIMIT"]
 
         def cleanup_redis():
+            """
+            Deletes keys in redis releted to Celery tasks and closes the Redis connection on exit
+            """
             patterns = ["celery-task*", "task_status*"]
             redis_connection = self.get_redis_connection()
             for pattern in patterns:
@@ -95,6 +99,9 @@ class Distributaur:
             print("Redis cleared")
 
         def cleanup_celery():
+            """
+            Clears Celery task queue on exit
+            """
             self.app.control.purge()
             print("Celery queue cleared")
 
@@ -133,7 +140,7 @@ class Distributaur:
 
     def get_settings(self) -> str:
         """
-        Retrive settings of distributaur instance.
+        Return settings of distributaur instance.
         """
         return self.settings
 
@@ -142,7 +149,7 @@ class Distributaur:
         Construct a Redis URL from the configuration settings.
 
         Returns:
-            str: A Redis URL string built from the configuration settings.
+            str: A Redis URL string.
 
         Raises:
             ValueError: If any required Redis connection parameter is missing.
@@ -160,7 +167,8 @@ class Distributaur:
 
     def get_redis_connection(self, force_new: bool = False) -> Redis:
         """
-        Retrieve or create a new Redis connection using the connection pool.
+        Returns Redis connection. If it already exists, returns current connection.
+        If it does not exist, its create a new Redis connection using a connection pool.
 
         Args:
             force_new (bool): Force the creation of a new connection if set to True. Defaults to False.
@@ -180,7 +188,7 @@ class Distributaur:
 
     def get_env(self, key: str, default: any = None) -> any:
         """
-        Retrieve a value from the configuration settings, with an optional default if the key is not found.
+        Retrieve a value from the configuration or .env file, with an optional default if the key is not found.
 
         Args:
             key (str): The key to look for in the settings.
@@ -193,14 +201,14 @@ class Distributaur:
 
     def call_function_task(self, func_name: str, args_json: str) -> any:
         """
-        Celery task to execute a registered function with provided JSON arguments.
+        Creates Celery task that executes a registered function with provided JSON arguments.
 
         Args:
             func_name (str): The name of the registered function to execute.
             args_json (str): JSON string representation of the arguments for the function.
 
         Returns:
-            any: task object, represents result of function
+            any: Celery.app.task object, represents result of the registered function
 
         Raises:
             ValueError: If the function name is not registered.
@@ -224,7 +232,7 @@ class Distributaur:
 
     def register_function(self, func: callable) -> callable:
         """
-        Decorator to register a function so that it can be invoked as a task.
+        Decorator to register a function so that it can be invoked as a Celery task.
 
         Args:
             func (callable): The function to register.
@@ -238,6 +246,7 @@ class Distributaur:
     def execute_function(self, func_name: str, args: dict) -> Celery.AsyncResult:
         """
         Execute a registered function as a Celery task with provided arguments.
+
         Args:
             func_name (str): The name of the function to execute.
             args (dict): Arguments to pass to the function.
@@ -251,7 +260,7 @@ class Distributaur:
 
     def update_function_status(self, task_id: str, status: str) -> None:
         """
-        Update the status of a function task in Redis.
+        Update the status of a function task as a new Redis key.
 
         Args:
             task_id (str): The ID of the task.
@@ -261,11 +270,20 @@ class Distributaur:
         redis_client.set(f"task_status:{task_id}", status)
 
     def initialize_dataset(self, **kwargs) -> None:
-        """Initialize a Hugging Face repository if it doesn't exist."""
+        """
+        Initialize a Hugging Face repository if it doesn't exist. Reads HuggingFace info from config or .env
+
+        Args:
+            kwargs: kwargs that can be passed into the HfApi.create_repo function. 
+
+        Raises:
+            HTTPError: If repo cannot be created due to connection error other than repo not existing
+        """
         repo_id = self.settings.get("HF_REPO_ID")
         hf_token = self.settings.get("HF_TOKEN")
         api = HfApi(token=hf_token)
 
+        # creates new repo if desired repo is not found
         try:
             repo_info = api.repo_info(repo_id=repo_id, repo_type="dataset", timeout=30)
         except HTTPError as e:
@@ -290,6 +308,7 @@ class Distributaur:
             },
         }
 
+        # apply config.json to created repo
         with tempfile.TemporaryDirectory() as temp_dir:
             with Repository(
                 local_dir=temp_dir,
@@ -337,7 +356,8 @@ class Distributaur:
 
     def upload_directory(self, dir_path: str) -> None:
         """
-        Upload a directory to a Hugging Face repository.
+        Upload a directory to a Hugging Face repository. Can be used to reduce frequency of HuggingFace API
+        calls if you are rate limited while using the upload_file function.
 
         Args:
             dir_path (str): The path of the directory to upload.
@@ -453,10 +473,10 @@ class Distributaur:
 
     def search_offers(self, max_price: float) -> List[Dict]:
         """
-        Search for available offers on the Vast.ai platform.
+        Search for available offers to rent a node as an instance on the Vast.ai platform.
 
         Args:
-            max_price (float): The maximum price per hour for the offers.
+            max_price (float): The maximum price per hour for the instance.
 
         Returns:
             List[Dict]: A list of dictionaries representing the available offers.
@@ -499,8 +519,8 @@ class Distributaur:
         Args:
             offer_id (str): The ID of the offer to create the instance from.
             image (str): The image to use for the instance. (example: RaccoonResearch/distributaur-test-worker)
-            module_name (str): The name of the module to run on the instance (example: distributaur.example.worker)
-            command (str): command that initializes celery worker
+            module_name (str): The name of the module to run on the instance, configured to be a docker file (example: distributaur.example.worker)
+            command (str): command that initializes celery worker. Has default command if not passed in.
 
         Returns:
             Dict: A dictionary representing the created instance.
@@ -561,7 +581,7 @@ class Distributaur:
         command: str = None,
     ) -> List[Dict]:
         """
-        Rent nodes on the Vast.ai platform.
+        Rent nodes as an instance on the Vast.ai platform. 
 
         Args:
             max_price (float): The maximum price per hour for the nodes.
@@ -570,7 +590,8 @@ class Distributaur:
             module_name (str): The name of the module to run on the nodes.
 
         Returns:
-            List[Dict]: A list of dictionaries representing the rented nodes.
+            List[Dict]: A list of dictionaries representing the rented nodes. If error is encountered
+            trying to rent, it will retry every 5 seconds.
         """
         rented_nodes: List[Dict] = []
         while len(rented_nodes) < max_nodes:
@@ -620,10 +641,13 @@ class Distributaur:
 
     def terminate_nodes(self, nodes: List[Dict]) -> None:
         """
-        Terminate the rented nodes.
+        Terminate the instances of rented nodes on Vast.ai.
 
         Args:
             nodes (List[Dict]): A list of dictionaries representing the rented nodes.
+
+        Raises:
+            Exception: If error in destroying instances.
         """
         for node in nodes:
             try:
@@ -640,10 +664,14 @@ distributaur = None
 def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
     """
     Create distributaur instance using settings using config that merges config.json and .env files present in distributaur directory.
-
+    If there are conflicting values in the two files, the .env takes priority.
+    
     Args:
         config_path (str): path to config.json file
         env_path (str): path to .env file
+
+    Returns:
+        Distributaur object initialized with settings from config or .env   
     """
     print("**** CREATE_FROM_CONFIG ****")
     global distributaur
