@@ -84,39 +84,6 @@ This script configures the environment, registers a sample function, dispatches 
 - `--module_name` is the name of the celery worker
 - `--number_of_tasks` is the number of example tasks that will be added to the queue and done by the workers.
 
-
-## API Reference
-
-### Core Functionality
-
-- **register_function(func: callable) -> callable**: Decorator to register a function so that it can be invoked as a task.
-- **execute_function(func_name: str, args: dict) -> Celery.AsyncResult**: Execute a registered function as a Celery task with provided arguments.
-
-### Configuration Management
-
-- **get_env(key: str, default: any = None) -> any**: Retrieve a value from the configuration settings, with an optional default if the key is not found.
-
-### Task Management
-
-- **update_function_status(task_id: str, status: str) -> None**: Update the status of a function task in Redis.
-
-### Hugging Face Dataset Management
-
-- **initialize_dataset(\*\*kwargs) -> None**: Initialize a Hugging Face repository if it doesn't exist.
-- **upload_file(file_path: str) -> None**: Upload a file to a Hugging Face repository.
-- **upload_directory(output_dir: str, repo_dir: str) -> None**: Upload the rendered outputs to a Hugging Face repository.
-- **delete_file(repo_id: str, path_in_repo: str) -> None**: Delete a file from a Hugging Face repository.
-- **file_exists(repo_id: str, path_in_repo: str) -> bool**: Check if a file exists in a Hugging Face repository.
-- **list_files(repo_id: str) -> list**: Get a list of files from a Hugging Face repository.
-
-### VAST.ai Integration
-
-- **search_offers(max_price: float) -> List[Dict]**: Search for available offers on the Vast.ai platform.
-- **create_instance(offer_id: str, image: str, module_name: str) -> Dict**: Create an instance on the Vast.ai platform.
-- **destroy_instance(instance_id: str) -> Dict**: Destroy an instance on the Vast.ai platform.
-- **rent_nodes(max_price: float, max_nodes: int, image: str, module_name: str) -> List[Dict]**: Rent nodes on the Vast.ai platform.
-- **terminate_nodes(nodes: List[Dict]) -> None**: Terminate the rented nodes.
-
 ## Contributing
 
 Contributions are welcome! For major changes, please open an issue first to discuss what you would like to change.
