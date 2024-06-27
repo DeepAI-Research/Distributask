@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     distributaur.register_function(example_function)
 
-    # First, initialize the dataset on Huggingface
+    # First, initialize the dataset on Hugging Face
     # This is idempotent, if you run it multiple times it won't delete files that already exist
     distributaur.initialize_dataset()
 

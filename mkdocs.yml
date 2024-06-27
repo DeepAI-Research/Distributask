@@ -9,6 +9,11 @@ plugins:
 - mkdocstrings:
     enabled: true
     default_handler: python
+nav:
+    - Home: index.md
+    - Getting Started: getting_started.md
+    - More Information: more_info.md
+    - Distributaur Class: distributaur.md
 
 
     
