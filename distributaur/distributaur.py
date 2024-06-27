@@ -17,7 +17,9 @@ from celery.utils.log import get_task_logger
 
 class Distributaur:
     """
-    Configuration management class that stores settings and provides methods to update and retrieve these settings.
+    The Distributaur class contains the core functionalities of distributaur, including creating and 
+    executing the task queue, managing workers using the vast.ai API, and uploading files and directories 
+    using the HuggingFace API.
     """
 
     app: Celery = None
@@ -37,7 +39,8 @@ class Distributaur:
         broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
     ) -> None:
         """
-        Initialize the Distributaur object with the provided configuration parameters.
+        Initialize the Distributaur object with the provided configuration parameters. Also sets some 
+        default settings in Celery and handles clean up of Celery queue and Redis server on exit.
 
         Args:
             hf_repo_id (str): Hugging Face repository ID.
@@ -95,8 +98,7 @@ class Distributaur:
             for pattern in patterns:
                 for key in redis_connection.scan_iter(match=pattern):
                     redis_connection.delete(key)
-            redis_connection.close()
-            print("Redis cleared")
+            print("Redis server cleared")
 
         def cleanup_celery():
             """
