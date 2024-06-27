@@ -5,4 +5,5 @@ The distributaur module contains the core functionalities of Distributaur, inclu
 ::: distributaur.distributaur
     :docstring:
     :members:
+    :undoc-members:
     :show-inheritance:
