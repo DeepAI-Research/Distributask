@@ -17,8 +17,8 @@ from celery.utils.log import get_task_logger
 
 class Distributaur:
     """
-    The Distributaur class contains the core functionalities of distributaur, including creating and 
-    executing the task queue, managing workers using the vast.ai API, and uploading files and directories 
+    The Distributaur class contains the core features of distributaur, including creating and 
+    executing the task queue, managing workers using the Vast.ai API, and uploading files and directories 
     using the HuggingFace API.
     """
 
@@ -40,7 +40,7 @@ class Distributaur:
     ) -> None:
         """
         Initialize the Distributaur object with the provided configuration parameters. Also sets some 
-        default settings in Celery and handles clean up of Celery queue and Redis server on exit.
+        default settings in Celery and handles cleanup of Celery queue and Redis server on exit.
 
         Args:
             hf_repo_id (str): Hugging Face repository ID.
@@ -91,7 +91,7 @@ class Distributaur:
 
         def cleanup_redis():
             """
-            Deletes keys in redis releted to Celery tasks and closes the Redis connection on exit
+            Deletes keys in redis related to Celery tasks and closes the Redis connection on exit
             """
             patterns = ["celery-task*", "task_status*"]
             redis_connection = self.get_redis_connection()
@@ -665,15 +665,15 @@ distributaur = None
 
 def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
     """
-    Create distributaur instance using settings using config that merges config.json and .env files present in distributaur directory.
-    If there are conflicting values in the two files, the .env takes priority.
+    Create Distributaur object using settings that merge config.json and .env files present in distributaur directory.
+    If there are conflicting values, the .env takes priority.
     
     Args:
         config_path (str): path to config.json file
         env_path (str): path to .env file
 
     Returns:
-        Distributaur object initialized with settings from config or .env   
+        Distributaur object initialized with settings from config or .env file
     """
     print("**** CREATE_FROM_CONFIG ****")
     global distributaur
