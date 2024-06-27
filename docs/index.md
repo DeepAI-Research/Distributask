@@ -1,6 +1,3 @@
-
-
-
 <img src="assets/banner.png" style="width: 100%">
 
 Distributaur is a simple way to distribute rendering tasks across multiple machines.

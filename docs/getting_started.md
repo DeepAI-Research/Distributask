@@ -2,13 +2,13 @@
 
 Below are instructions to get distributaur running on your machine. Please read through the rest of the documentation for more detailed information.
 
-# Installation
+## Installation
 
 ```bash
 pip install distributaur
 ```
 
-# Development
+## Development
 
 ### Prerequisites
 
