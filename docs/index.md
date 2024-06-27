@@ -35,4 +35,6 @@ distributaur uses Vast.ai, a decentralized GPU market, to create workers that ex
 
 distributaur uses Huggingface, a platform for sharing AI models and datasets, to store the results of the task. The results of the task are uploaded to Hugginface using API calls in distributaur. For example, our rendered videos would be uploaded as a dataset on Huggingface.
 
+## Flowchart of distributaur process
 
+<img src="assets/diagram.png" style="width: 100%">
