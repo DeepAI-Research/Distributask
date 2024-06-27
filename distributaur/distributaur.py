@@ -19,7 +19,7 @@ class Distributaur:
     """
     The Distributaur class contains the core features of distributaur, including creating and 
     executing the task queue, managing workers using the Vast.ai API, and uploading files and directories 
-    using the HuggingFace API.
+    using the Hugging Face API.
     """
 
     app: Celery = None
@@ -273,7 +273,7 @@ class Distributaur:
 
     def initialize_dataset(self, **kwargs) -> None:
         """
-        Initialize a Hugging Face repository if it doesn't exist. Reads HuggingFace info from config or .env
+        Initialize a Hugging Face repository if it doesn't exist. Reads Hugging Face info from config or .env
 
         Args:
             kwargs: kwargs that can be passed into the HfApi.create_repo function. 
@@ -358,7 +358,7 @@ class Distributaur:
 
     def upload_directory(self, dir_path: str) -> None:
         """
-        Upload a directory to a Hugging Face repository. Can be used to reduce frequency of HuggingFace API
+        Upload a directory to a Hugging Face repository. Can be used to reduce frequency of Hugging Face API
         calls if you are rate limited while using the upload_file function.
 
         Args:
