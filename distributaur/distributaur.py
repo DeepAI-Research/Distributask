@@ -662,13 +662,16 @@ class Distributaur:
 
     def monitor_tasks(self, tasks, update_interval = 1, show_time_left=True, print_statements=True):
         """
-        Terminate the instances of rented nodes on Vast.ai.
+        Monitor the status of the tasks on the Vast.ai nodes.
 
         Args:
-            nodes (List[Dict]): A list of dictionaries representing the rented nodes.
-
+            tasks (List): A list of the tasks to monitor. Should be a list of the results of execute_function.
+            update_interval (bool): Number of seconds the status of tasks are updated.
+            show_time_left (bool): Show the estimated time left to complete tasks using the tqdm progress bar
+            print_statments (bool): Allow printing of status of task queue
+            
         Raises:
-            Exception: If error in destroying instances.
+            Exception: If error in the process of executing the tasks
         """
 
         try:
