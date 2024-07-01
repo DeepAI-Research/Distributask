@@ -31,4 +31,4 @@ jobs:
       run: echo ::set-output name=package_version::$(echo $GITHUB_REF | cut -d / -f 3) > version.txt
     - name: Running tests
       run: |
-        pytest distributaur/tests/test.py
+        pytest distributaur/tests/tests.py

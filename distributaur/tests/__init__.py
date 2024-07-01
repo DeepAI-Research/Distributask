@@ -1,2 +1,2 @@
-from .test import *
+from .tests import *
 from .worker import *
