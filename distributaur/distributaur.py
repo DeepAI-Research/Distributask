@@ -2,6 +2,7 @@ import os
 import json
 import time
 import requests
+from tqdm import tqdm
 from typing import Dict, List
 import atexit
 import tempfile
@@ -658,6 +659,60 @@ class Distributaur:
                 self.log(
                     f"Error terminating node: {node['instance_id']}, {str(e)}", "error"
                 )
+
+    def monitor_tasks(self, tasks, update_interval = 1, show_time_left=True, print_statements=True):
+        """
+        Terminate the instances of rented nodes on Vast.ai.
+
+        Args:
+            nodes (List[Dict]): A list of dictionaries representing the rented nodes.
+
+        Raises:
+            Exception: If error in destroying instances.
+        """
+
+        try:
+            first_task_done = False
+            # Wait for the tasks to complete
+            if print_statements:
+                print("Tasks submitted to queue. Initializing queue...")
+            with tqdm(total=len(tasks), unit="task") as pbar:
+                while not all(task.ready() for task in tasks):
+                    current_tasks = sum([task.ready() for task in tasks])
+                    pbar.update(current_tasks - pbar.n)
+
+                    if current_tasks > 0:
+                        # begin estimation from time of first task
+                        if not first_task_done:
+                            first_task_done = True
+                            first_task_start_time = time.time()
+                            if print_statements:
+                                print("Initialization completed. Tasks started...")
+
+                        # calculate and print total elapsed time and estimated time left
+                        end_time = time.time()
+                        elapsed_time = end_time - first_task_start_time
+                        time_per_tasks = elapsed_time / current_tasks
+                        time_left = time_per_tasks * (len(tasks) - current_tasks)
+
+                        if show_time_left:
+                            pbar.set_postfix(
+                                elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}"
+                            )
+                        else:
+                            pbar.set_postfix(
+                                elapsed=f"{elapsed_time:.2f}s"
+                            )                        
+
+                    time.sleep(update_interval)
+        except Exception as e:
+            self.log(
+                f"Error in executing tasks on nodes, {str(e)}"
+            )
+            
+        if all(task.ready() for task in tasks):
+            print("All tasks completed.")
+
 
 
 distributaur = None
