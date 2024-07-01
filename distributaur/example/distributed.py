@@ -106,41 +106,10 @@ if __name__ == "__main__":
         # add the task to the list of tasks
         tasks.append(task)
 
-
-
     def terminate_workers():
         distributaur.terminate_nodes(rented_nodes)
         print("Workers terminated.")
 
     atexit.register(terminate_workers)
 
-    # first_task_done = False
-    # Wait for the tasks to complete
-    # print("Tasks submitted to queue. Initializing queue...")
-    # with tqdm(total=len(tasks), unit="task") as pbar:
-    #     while not all(task.ready() for task in tasks):
-    #         current_tasks = sum([task.ready() for task in tasks])
-    #         pbar.update(current_tasks - pbar.n)
-
-    #         if current_tasks > 0:
-    #             # begin estimation from time of first task
-    #             if not first_task_done:
-    #                 first_task_done = True
-    #                 first_task_start_time = time.time()
-    #                 print("Initialization completed. Tasks started...")
-
-    #             # calculate and print total elapsed time and estimated time left
-    #             end_time = time.time()
-    #             elapsed_time = end_time - first_task_start_time
-    #             time_per_tasks = elapsed_time / current_tasks
-    #             time_left = time_per_tasks * (len(tasks) - current_tasks)
-
-    #             pbar.set_postfix(
-    #                 elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}"
-    #             )
-
     distributaur.monitor_tasks(tasks)
-
-
-    # if current_tasks == args.number_of_tasks:
-    #     atexit.register(tasks_done)
