@@ -183,7 +183,11 @@ class Distributaur:
             return self.redis_client
         else:
             redis_url = self.get_redis_url()
-            self.pool = ConnectionPool.from_url(redis_url)
+            # self.pool = ConnectionPool.from_url(redis_url)
+            self.pool = ConnectionPool(host=self.settings["REDIS_HOST"],
+                            port=self.settings["REDIS_PORT"],
+                            password=self.settings["REDIS_PASSWORD"],
+                            max_connections=self.settings["BROKER_POOL_LIMIT"])
             self.redis_client = Redis(connection_pool=self.pool)
             atexit.register(self.pool.disconnect)
 
