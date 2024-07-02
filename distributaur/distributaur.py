@@ -113,6 +113,8 @@ class Distributaur:
         atexit.register(cleanup_redis)
         atexit.register(cleanup_celery)
 
+        self.redis_client = self.get_redis_connection()
+
         # Tasks are acknowledged after they have been executed
         self.app.task_acks_late = True
         # Worker only fetches one task at a time
@@ -187,8 +189,8 @@ class Distributaur:
             self.pool = ConnectionPool(host=self.settings["REDIS_HOST"],
                             port=self.settings["REDIS_PORT"],
                             password=self.settings["REDIS_PASSWORD"],
-                            max_connections=self.settings["BROKER_POOL_LIMIT"])
-            self.redis_client = Redis(connection_pool=self.pool)
+                            max_connections=1)
+            self.redis_client = Redis(connection_pool=self.pool, max_connections=1)
             atexit.register(self.pool.disconnect)
 
         return self.redis_client
