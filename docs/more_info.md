@@ -50,6 +50,10 @@ The Distributaur class is initialized with various settings. The ones that depen
 `celery.app.task.max_retries = 3`
 `celery.app.default_retry_delay = 30`
 
+# Docker Setup
+
+Distributaur uses a Docker image to transfer the environment and files to the Vast.ai nodes. In your implementation using distributaur, you can use the Docker file in the distributaur repository as a base for your own Docker file. If you choose to do this, be sure to add requirements.txt (and add distributaur to the list of packages) to your directory as well so the Docker image has the required packages.
+
 # Important Packages
 
 Visit the websites of these wonderful packages to learn more about how they work and how to use them.
