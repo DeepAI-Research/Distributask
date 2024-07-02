@@ -75,7 +75,3 @@ Below are options you can pass into your distributaur example run.
 - `--docker_image` is the name of the docker image to load to the vast.ai node.
 - `--module_name` is the name of the celery worker
 - `--number_of_tasks` is the number of example tasks that will be added to the queue and done by the workers.
-
-### Docker Setup
-
-Distributaur uses a Docker image to transfer the environment and files to the Vast.ai nodes. In your implementation using distributaur, you can use the Docker file in the distributaur repository as a base for your own Docker file. If you choose to do this, be sure to add requirements.txt (and add distributaur to the list of packages) to your directory as well so the Docker image has the required packages.
