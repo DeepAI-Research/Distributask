@@ -16,9 +16,9 @@ from requests.exceptions import HTTPError
 from celery.utils.log import get_task_logger
 
 
-class Distributaur:
+class Distributask:
     """
-    The Distributaur class contains the core features of distributaur, including creating and 
+    The Distributask class contains the core features of distributask, including creating and 
     executing the task queue, managing workers using the Vast.ai API, and uploading files and directories 
     using the Hugging Face API.
     """
@@ -40,7 +40,7 @@ class Distributaur:
         broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
     ) -> None:
         """
-        Initialize the Distributaur object with the provided configuration parameters. Also sets some 
+        Initialize the Distributask object with the provided configuration parameters. Also sets some 
         default settings in Celery and handles cleanup of Celery queue and Redis server on exit.
 
         Args:
@@ -58,15 +58,15 @@ class Distributaur:
         """
         if hf_repo_id is None:
             raise ValueError(
-                "HF_REPO_ID is not provided to the Distributaur constructor"
+                "HF_REPO_ID is not provided to the Distributask constructor"
             )
 
         if hf_token is None:
-            raise ValueError("HF_TOKEN is not provided to the Distributaur constructor")
+            raise ValueError("HF_TOKEN is not provided to the Distributask constructor")
 
         if vast_api_key is None:
             raise ValueError(
-                "VAST_API_KEY is not provided to the Distributaur constructor"
+                "VAST_API_KEY is not provided to the Distributask constructor"
             )
 
         if redis_host == "localhost":
@@ -87,7 +87,7 @@ class Distributaur:
 
         redis_url = self.get_redis_url()
         # start Celery app instance
-        self.app = Celery("distributaur", broker=redis_url, backend=redis_url)
+        self.app = Celery("distributask", broker=redis_url, backend=redis_url)
         self.app.conf.broker_pool_limit = self.settings["BROKER_POOL_LIMIT"]
 
         def cleanup_redis():
@@ -145,7 +145,7 @@ class Distributaur:
 
     def get_settings(self) -> str:
         """
-        Return settings of distributaur instance.
+        Return settings of distributask instance.
         """
         return self.settings
 
@@ -527,8 +527,8 @@ class Distributaur:
 
         Args:
             offer_id (str): The ID of the offer to create the instance from.
-            image (str): The image to use for the instance. (example: RaccoonResearch/distributaur-test-worker)
-            module_name (str): The name of the module to run on the instance, configured to be a docker file (example: distributaur.example.worker)
+            image (str): The image to use for the instance. (example: RaccoonResearch/distributask-test-worker)
+            module_name (str): The name of the module to run on the instance, configured to be a docker file (example: distributask.example.worker)
             command (str): command that initializes celery worker. Has default command if not passed in.
 
         Returns:
@@ -724,12 +724,12 @@ class Distributaur:
 
 
 
-distributaur = None
+distributask = None
 
 
-def create_from_config(config_path="config.json", env_path=".env") -> Distributaur:
+def create_from_config(config_path="config.json", env_path=".env") -> Distributask:
     """
-    Create Distributaur object using settings that merge config.json and .env files present in distributaur directory.
+    Create Distributask object using settings that merge config.json and .env files present in distributask directory.
     If there are conflicting values, the .env takes priority.
     
     Args:
@@ -737,12 +737,12 @@ def create_from_config(config_path="config.json", env_path=".env") -> Distributa
         env_path (str): path to .env file
 
     Returns:
-        Distributaur object initialized with settings from config or .env file
+        Distributask object initialized with settings from config or .env file
     """
     print("**** CREATE_FROM_CONFIG ****")
-    global distributaur
-    if distributaur is not None:
-        return distributaur
+    global distributask
+    if distributask is not None:
+        return distributask
     # Load environment variables from .env file
     try:
         load_dotenv(env_path)
@@ -763,7 +763,7 @@ def create_from_config(config_path="config.json", env_path=".env") -> Distributa
     env_dict = {key: value for key, value in os.environ.items()}
     settings = OmegaConf.merge(settings, OmegaConf.create(env_dict))
 
-    distributaur = Distributaur(
+    distributask = Distributask(
         hf_repo_id=settings.get("HF_REPO_ID"),
         hf_token=settings.get("HF_TOKEN"),
         vast_api_key=settings.get("VAST_API_KEY"),
@@ -774,4 +774,4 @@ def create_from_config(config_path="config.json", env_path=".env") -> Distributa
         broker_pool_limit=int(settings.get("BROKER_POOL_LIMIT", 1)),
     )
 
-    return distributaur
+    return distributask

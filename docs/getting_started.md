@@ -1,11 +1,11 @@
 # Getting Started
 
-Below are instructions to get distributaur running on your machine. Please read through the rest of the documentation for more detailed information.
+Below are instructions to get distributask running on your machine. Please read through the rest of the documentation for more detailed information.
 
 ## Installation
 
 ```bash
-pip install distributaur
+pip install distributask
 ```
 
 ## Development
@@ -23,8 +23,8 @@ pip install distributaur
 Clone the repository and navigate to the project directory:
 
 ```bash
-git clone https://github.com/RaccoonResearch/distributaur.git
-cd distributaur
+git clone https://github.com/RaccoonResearch/Distributask.git
+cd Distributask
 ```
 
 Install the required packages:
@@ -33,7 +33,7 @@ Install the required packages:
 pip install -r requirements.txt
 ```
 
-Install the distributaur package:
+Install the distributask package:
 
 ```bash
 python setup.py install
@@ -56,19 +56,19 @@ BROKER_POOL_LIMIT=broker_pool_limit
 
 ### Running an Example Task
 
-To run an example task and see distributaur in action, you can execute the example script provided in the project:
+To run an example task and see distributask in action, you can execute the example script provided in the project:
 
 ```bash
 # Run an example task locally
-python -m distributaur.example.local
+python -m distributask.example.local
 
 # Run an example task on Vast.ai ("kitchen sink" example)
-python -m distributaur.example.distributed
+python -m distributask.example.distributed
 ```
 
 ### Command Options
 
-Below are options you can pass into your distributaur example run.
+Below are options you can pass into your distributask example run.
 
 - `--max_price` is the max price (in $/hour) a node can be be rented for.
 - `--max_nodes` is the max number of vast.ai nodes that can be rented.

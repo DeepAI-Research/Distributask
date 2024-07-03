@@ -2,9 +2,9 @@ import os
 import random
 import time
 
-from ..distributaur import create_from_config
+from ..distributask import create_from_config
 
-distributaur = create_from_config()
+distributask = create_from_config()
 
 
 # This is the function that will be executed on the nodes
@@ -21,7 +21,7 @@ def example_function(index, arg1, arg2):
         f.write(f"{str(arg1)} plus {str(arg2)} is {str(result)}")
 
     # write the file to huggingface
-    distributaur.upload_file(f"result_{index}.txt")
+    distributask.upload_file(f"result_{index}.txt")
 
     # now destroy the file
     os.remove(f"result_{index}.txt")

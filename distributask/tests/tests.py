@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from huggingface_hub import HfApi
 
-from ..distributaur import create_from_config
+from ..distributask import create_from_config
 from .worker import example_test_function
 
 
@@ -24,65 +24,65 @@ def test_register_function(mock_task_function):
     Test the register_function function.
     """
     mock_task_function.__name__ = "mock_task"  # Set the __name__ attribute
-    distributaur = create_from_config()
-    decorated_task = distributaur.register_function(mock_task_function)
+    distributask = create_from_config()
+    decorated_task = distributask.register_function(mock_task_function)
 
     assert callable(decorated_task)
-    assert mock_task_function.__name__ in distributaur.registered_functions
+    assert mock_task_function.__name__ in distributask.registered_functions
     assert (
-        distributaur.registered_functions[mock_task_function.__name__]
+        distributask.registered_functions[mock_task_function.__name__]
         == mock_task_function
     )
     print("Test passed")
 
 
-@patch("distributaur.distributaur.call_function_task.delay")
+@patch("distributask.distributask.call_function_task.delay")
 def test_execute_function(mock_delay, mock_task_function):
     """
     Test the execute_function function.
     """
     mock_task_function.__name__ = "mock_task"  # Set the __name__ attribute
-    distributaur = create_from_config()
-    distributaur.register_function(mock_task_function)
+    distributask = create_from_config()
+    distributask.register_function(mock_task_function)
 
     params = {"arg1": 1, "arg2": 2}
-    distributaur.execute_function(mock_task_function.__name__, params)
+    distributask.execute_function(mock_task_function.__name__, params)
 
     mock_delay.assert_called_once_with(mock_task_function.__name__, json.dumps(params))
     print("Test passed")
 
 
 def test_register_function():
-    distributaur = create_from_config()
+    distributask = create_from_config()
 
-    distributaur.register_function(example_test_function)
-    assert "example_test_function" in distributaur.registered_functions
+    distributask.register_function(example_test_function)
+    assert "example_test_function" in distributask.registered_functions
     assert (
-        distributaur.registered_functions["example_test_function"]
+        distributask.registered_functions["example_test_function"]
         == example_test_function
     )
     print("Task registration test passed")
 
 
 def test_execute_function():
-    distributaur = create_from_config()
+    distributask = create_from_config()
 
-    distributaur.register_function(example_test_function)
+    distributask.register_function(example_test_function)
     task_params = {"arg1": 10, "arg2": 20}
-    task = distributaur.execute_function("example_test_function", task_params)
+    task = distributask.execute_function("example_test_function", task_params)
     assert task.id is not None
     print("Task execution test passed")
 
 
 # def test_worker_task_execution():
-#     distributaur = create_from_config()
+#     distributask = create_from_config()
 
-#     distributaur.register_function(example_test_function)
+#     distributask.register_function(example_test_function)
 
 #     worker_cmd = [
 #         "celery",
 #         "-A",
-#         "distributaur.tests.worker",
+#         "distributask.tests.worker",
 #         "worker",
 #         "--loglevel=info",
 #     ]
@@ -94,7 +94,7 @@ def test_execute_function():
 
 #     task_params = {"arg1": 10, "arg2": 20}
 #     print("executing task")
-#     task = distributaur.execute_function("example_test_function", task_params)
+#     task = distributask.execute_function("example_test_function", task_params)
 #     result = task.get(timeout=30)
 
 #     assert result == "+arg2=30"
@@ -106,8 +106,8 @@ def test_execute_function():
 
 
 def test_task_status_update():
-    distributaur = create_from_config()
-    redis_client = distributaur.get_redis_connection()
+    distributask = create_from_config()
+    redis_client = distributask.get_redis_connection()
 
     task_status_keys = redis_client.keys("task_status:*")
     if task_status_keys:
@@ -116,7 +116,7 @@ def test_task_status_update():
     task_id = "test_task_123"
     status = "COMPLETED"
 
-    distributaur.update_function_status(task_id, status)
+    distributask.update_function_status(task_id, status)
 
     status_from_redis = redis_client.get(f"task_status:{task_id}").decode()
     assert status_from_redis == status
@@ -127,12 +127,12 @@ def test_task_status_update():
 
 
 def test_initialize_repo():
-    distributaur = create_from_config()
+    distributask = create_from_config()
 
     # Initialize the repository
-    distributaur.initialize_dataset()
-    hf_token = distributaur.get_env("HF_TOKEN")
-    repo_id = distributaur.get_env("HF_REPO_ID")
+    distributask.initialize_dataset()
+    hf_token = distributask.get_env("HF_TOKEN")
+    repo_id = distributask.get_env("HF_REPO_ID")
 
     print("repo_id")
     print(repo_id)
@@ -156,8 +156,8 @@ def test_initialize_repo():
 
 
 def test_upload_directory():
-    distributaur = create_from_config()
-    distributaur.initialize_dataset()
+    distributask = create_from_config()
+    distributask.initialize_dataset()
     # Create a temporary directory for testing
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create test files
@@ -167,12 +167,12 @@ def test_upload_directory():
             with open(file_path, "w") as f:
                 f.write("Test content")
 
-        hf_token = distributaur.get_env("HF_TOKEN")
-        repo_id = distributaur.get_env("HF_REPO_ID")
-        repo_path = distributaur.get_env("HF_REPO_PATH", "data")
+        hf_token = distributask.get_env("HF_TOKEN")
+        repo_id = distributask.get_env("HF_REPO_ID")
+        repo_path = distributask.get_env("HF_REPO_PATH", "data")
 
         # Upload the directory to the repository
-        distributaur.upload_directory(temp_dir)
+        distributask.upload_directory(temp_dir)
 
         # Check if the files exist in the Hugging Face repository
         api = HfApi(token=hf_token)
@@ -191,10 +191,10 @@ def test_upload_directory():
 
 
 def test_delete_file():
-    distributaur = create_from_config()
-    distributaur.initialize_dataset()
-    hf_token = distributaur.get_env("HF_TOKEN")
-    repo_id = distributaur.get_env("HF_REPO_ID")
+    distributask = create_from_config()
+    distributask.initialize_dataset()
+    hf_token = distributask.get_env("HF_TOKEN")
+    repo_id = distributask.get_env("HF_REPO_ID")
 
     # Create a test file in the repository
     test_file = "test.txt"
@@ -214,7 +214,7 @@ def test_delete_file():
     os.remove(test_file)
 
     # Delete the file from the repository
-    distributaur.delete_file(repo_id, test_file)
+    distributask.delete_file(repo_id, test_file)
 
     # Check if the file is deleted from the repository
     repo_files = api.list_repo_files(
@@ -227,10 +227,10 @@ def test_delete_file():
 
 
 def test_file_exists():
-    distributaur = create_from_config()
-    distributaur.initialize_dataset()
-    hf_token = distributaur.get_env("HF_TOKEN")
-    repo_id = distributaur.get_env("HF_REPO_ID")
+    distributask = create_from_config()
+    distributask.initialize_dataset()
+    hf_token = distributask.get_env("HF_TOKEN")
+    repo_id = distributask.get_env("HF_REPO_ID")
 
     # Create a test file in the repository
     test_file = "test.txt"
@@ -250,20 +250,20 @@ def test_file_exists():
     os.remove(test_file)
 
     # Check if the file exists in the repository
-    assert distributaur.file_exists(repo_id, test_file)
+    assert distributask.file_exists(repo_id, test_file)
 
     # Check if a non-existent file exists in the repository
-    assert not distributaur.file_exists(repo_id, "nonexistent.txt")
+    assert not distributask.file_exists(repo_id, "nonexistent.txt")
 
     # Clean up the repository
     api.delete_repo(repo_id=repo_id, repo_type="dataset", token=hf_token)
 
 
 def test_list_files():
-    distributaur = create_from_config()
-    distributaur.initialize_dataset()
-    hf_token = distributaur.get_env("HF_TOKEN")
-    repo_id = distributaur.get_env("HF_REPO_ID")
+    distributask = create_from_config()
+    distributask.initialize_dataset()
+    hf_token = distributask.get_env("HF_TOKEN")
+    repo_id = distributask.get_env("HF_REPO_ID")
 
     # Create test files in the repository
     test_files = ["test1.txt", "test2.txt"]
@@ -282,7 +282,7 @@ def test_list_files():
         )
 
     # List the files in the repository
-    repo_files = distributaur.list_files(repo_id)
+    repo_files = distributask.list_files(repo_id)
 
     for file in test_files:
         os.remove(file)
@@ -297,17 +297,17 @@ def test_list_files():
 
 @pytest.fixture(scope="module")
 def rented_nodes():
-    distributaur = create_from_config()
+    distributask = create_from_config()
 
     max_price = 0.5
     max_nodes = 1
-    image = "arfx/distributaur-worker:latest"
-    module_name = "distributaur.example.worker"
+    image = "antbaez/distributask-worker:latest"
+    module_name = "distributask.example.worker"
 
-    nodes = distributaur.rent_nodes(max_price, max_nodes, image, module_name)
+    nodes = distributask.rent_nodes(max_price, max_nodes, image, module_name)
     yield nodes
 
-    distributaur.terminate_nodes(nodes)
+    distributask.terminate_nodes(nodes)
 
 
 def test_rent_run_terminate(rented_nodes):
@@ -316,50 +316,50 @@ def test_rent_run_terminate(rented_nodes):
 
 
 def test_get_redis_url():
-    distributaur = create_from_config()
-    redis_url = distributaur.get_redis_url()
+    distributask = create_from_config()
+    redis_url = distributask.get_redis_url()
 
     assert redis_url.startswith("redis://")
-    assert distributaur.settings["REDIS_USER"] in redis_url
-    assert distributaur.settings["REDIS_PASSWORD"] in redis_url
-    assert distributaur.settings["REDIS_HOST"] in redis_url
-    assert str(distributaur.settings["REDIS_PORT"]) in redis_url
+    assert distributask.settings["REDIS_USER"] in redis_url
+    assert distributask.settings["REDIS_PASSWORD"] in redis_url
+    assert distributask.settings["REDIS_HOST"] in redis_url
+    assert str(distributask.settings["REDIS_PORT"]) in redis_url
 
 
 def test_get_redis_connection_force_new():
-    distributaur = create_from_config()
-    redis_client1 = distributaur.get_redis_connection()
-    redis_client2 = distributaur.get_redis_connection(force_new=True)
+    distributask = create_from_config()
+    redis_client1 = distributask.get_redis_connection()
+    redis_client2 = distributask.get_redis_connection(force_new=True)
 
     assert redis_client1 is not redis_client2
 
 
 def test_get_redis_connection_force_new():
-    distributaur = create_from_config()
-    redis_client1 = distributaur.get_redis_connection()
-    redis_client2 = distributaur.get_redis_connection(force_new=True)
+    distributask = create_from_config()
+    redis_client1 = distributask.get_redis_connection()
+    redis_client2 = distributask.get_redis_connection(force_new=True)
 
     assert redis_client1 is not redis_client2
 
 
 def test_get_env_with_default():
-    distributaur = create_from_config()
+    distributask = create_from_config()
     default_value = "default"
-    value = distributaur.get_env("NON_EXISTENT_KEY", default_value)
+    value = distributask.get_env("NON_EXISTENT_KEY", default_value)
 
     assert value == default_value
 
 
 @patch("requests.get")
 def test_search_offers(mock_get):
-    distributaur = create_from_config()
+    distributask = create_from_config()
     max_price = 1.0
 
     mock_response = MagicMock()
     mock_response.json.return_value = {"offers": [{"id": "offer1"}, {"id": "offer2"}]}
     mock_get.return_value = mock_response
 
-    offers = distributaur.search_offers(max_price)
+    offers = distributask.search_offers(max_price)
 
     assert len(offers) == 2
     assert offers[0]["id"] == "offer1"
@@ -368,17 +368,17 @@ def test_search_offers(mock_get):
 
 @patch("requests.put")
 def test_create_instance(mock_put):
-    distributaur = create_from_config()
+    distributask = create_from_config()
     offer_id = "offer1"
     image = "test_image"
-    module_name = "distributaur.example.worker"
+    module_name = "distributask.example.worker"
 
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"new_contract": "instance1"}
     mock_put.return_value = mock_response
 
-    instance = distributaur.create_instance(offer_id, image, module_name)
+    instance = distributask.create_instance(offer_id, image, module_name)
 
     assert instance["new_contract"] == "instance1"
 
@@ -395,7 +395,7 @@ def test_local_example_run():
     ) as fake_err:
 
         # Start a new process to run the local example
-        process = subprocess.Popen(["python", "-m", "distributaur.example.local"])
+        process = subprocess.Popen(["python", "-m", "distributask.example.local"])
         # if process hasn't ended in 3min, test is failed
         process.wait(timeout=180)
 
@@ -422,7 +422,7 @@ def test_distributed_example_run():
 
         # Start a new process to run the local example
         process = subprocess.Popen(
-            ["python", "-m", "distributaur.example.distributed", "--number_of_tasks=3"]
+            ["python", "-m", "distributask.example.distributed", "--number_of_tasks=3"]
         )
         # if process hasn't ended in 2min, test is failed
         process.wait(timeout=120)

@@ -1,4 +1,4 @@
-site_name: Distributaur
+site_name: Distributask
 theme:
     name: material
     logo: assets/logo.png
@@ -13,7 +13,7 @@ nav:
     - Home: index.md
     - Getting Started: getting_started.md
     - More Information: more_info.md
-    - Distributaur Class: distributaur.md
+    - Distributask Class: distributask.md
 
 
     

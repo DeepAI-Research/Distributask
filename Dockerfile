@@ -17,6 +17,6 @@ COPY requirements.txt .
 
 RUN pip install -r requirements.txt --break-system-packages
 
-COPY distributaur/ ./distributaur/
+COPY distributask/ ./distributask/
 
-CMD ["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info", "--concurrency=1"]
+CMD ["celery", "-A", "distributask.example.worker", "worker", "--loglevel=info", "--concurrency=1"]

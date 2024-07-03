@@ -1,4 +1,4 @@
-from ..distributaur import create_from_config
+from ..distributask import create_from_config
 
 distributaur = create_from_config()
 
