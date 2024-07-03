@@ -2,7 +2,7 @@
 
 #### Settings, Environment, and Help
 
-- `create_from_config()` - creates Distribtaur instance using environment variables
+- `create_from_config()` - creates Distribtask instance using environment variables
 - `get_env(key)` - gets value from .env
 - `get_settings(key)` - gets value from settings dictionary
 
@@ -30,11 +30,11 @@
 - `upload_directory(path_to_directory)` - uploads folder to Huggingface repo
 - `delete_file(path_to_file)` - deletes file on HuggingFace repo
 
-#### Visit the [Distributaur Class](distributaur.md) page for full, detailed documentation of the distributaur class.
+#### Visit the [Distributask Class](distributask.md) page for full, detailed documentation of the distributask class.
 
 # Initialized Settings
 
-The Distributaur class is initialized with various settings. The ones that depend on the environment are taken from a .env or config.json file present in the parent directory. The following are other settings that deal directory with the Celery app or features for your convience of use:
+The Distributask class is initialized with various settings. The ones that depend on the environment are taken from a .env or config.json file present in the parent directory. The following are other settings that deal directory with the Celery app or features for your convience of use:
 
 
 #### Tasks are acknowledged after they are executed
@@ -52,7 +52,7 @@ The Distributaur class is initialized with various settings. The ones that depen
 
 # Docker Setup
 
-Distributaur uses a Docker image to transfer the environment and files to the Vast.ai nodes. In your implementation using distributaur, you can use the Docker file in the distributaur repository as a base for your own Docker file. If you choose to do this, be sure to add requirements.txt (and add distributaur to the list of packages) to your directory as well so the Docker image has the required packages.
+Distributask uses a Docker image to transfer the environment and files to the Vast.ai nodes. In your implementation using Distributask, you can use the Docker file in the Distributask repository as a base for your own Docker file. If you choose to do this, be sure to add requirements.txt (and add distributask to the list of packages) to your directory as well so the Docker image has the required packages.
 
 # Important Packages
 

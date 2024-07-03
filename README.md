@@ -1,24 +1,24 @@
-# distributaur 
+# distributask 
 
-<!-- <a href="https://discord.gg/JMfbmHdPNB"><img style="float: right" src="https://dcbadge.vercel.app/api/server/JMfbmHdPNB" alt=""></a> <a href="https://github.com/RaccoonResearch/distributaur/stargazers"><img style="float: right; padding: 5px;" src="https://img.shields.io/github/stars/RaccoonResearch/distributaur?style=social" alt=""></a> -->
+<!-- <a href="https://discord.gg/JMfbmHdPNB"><img style="float: right" src="https://dcbadge.vercel.app/api/server/JMfbmHdPNB" alt=""></a> <a href="https://github.com/RaccoonResearch/distributask/stargazers"><img style="float: right; padding: 5px;" src="https://img.shields.io/github/stars/RaccoonResearch/distributask?style=social" alt=""></a> -->
 
 A simple way to distribute rendering tasks across multiple machines.
 
 <img src="docs/assets/banner.png">
 
-[![Lint and Test](https://github.com/RaccoonResearch/distributaur/actions/workflows/test.yml/badge.svg)](https://github.com/RaccoonResearch/distributaur/actions/workflows/test.yml)
-[![PyPI version](https://badge.fury.io/py/distributaur.svg)](https://badge.fury.io/py/distributaur)
-[![License](https://img.shields.io/badge/License-MIT-blue)](https://github.com/RaccoonResearch/distributaur/blob/main/LICENSE)
-[![forks - distributaur](https://img.shields.io/github/forks/RaccoonResearch/distributaur?style=social)](https://github.com/RaccoonResearch/distributaur)
+[![Lint and Test](https://github.com/RaccoonResearch/distributask/actions/workflows/test.yml/badge.svg)](https://github.com/RaccoonResearch/distributask/actions/workflows/test.yml)
+[![PyPI version](https://badge.fury.io/py/distributask.svg)](https://badge.fury.io/py/distributask)
+[![License](https://img.shields.io/badge/License-MIT-blue)](https://github.com/RaccoonResearch/distributask/blob/main/LICENSE)
+[![forks - distributask](https://img.shields.io/github/forks/RaccoonResearch/distributask?style=social)](https://github.com/RaccoonResearch/distributask)
 
 # Description
 
-Distributaur distributes rendering using the Celery task queue. The queued tasks are then passed to workers using Redis as a message broker. Once the worker has completed the task, the result is uploaded to Huggingface.
+Distributask distributes rendering using the Celery task queue. The queued tasks are then passed to workers using Redis as a message broker. Once the worker has completed the task, the result is uploaded to Huggingface.
 
 # Installation
 
 ```bash
-pip install distributaur
+pip install distributask
 ```
 
 # Development
@@ -28,8 +28,8 @@ pip install distributaur
 Clone the repository and navigate to the project directory:
 
 ```bash
-git clone https://github.com/RaccoonResearch/distributaur.git
-cd distributaur
+git clone https://github.com/RaccoonResearch/distributask.git
+cd distributask
 ```
 
 Install the required packages:
@@ -38,7 +38,7 @@ Install the required packages:
 pip install -r requirements.txt
 ```
 
-Install the distributaur package:
+Install the distributask package:
 
 ```bash
 python setup.py install
@@ -63,14 +63,14 @@ BROKER_POOL_LIMIT=broker_pool_limit
 
 ### Running an Example Task
 
-To run an example task and see Distributaur in action, you can execute the example script provided in the project:
+To run an example task and see Distributask in action, you can execute the example script provided in the project:
 
 ```bash
 # To run the example task locally using either a Docker container or a Celery worker
-python -m distributaur.example.local
+python -m distributask.example.local
 
 # To run the example task on vast.ai ("kitchen sink" example)
-python -m distributaur.example.distributed
+python -m distributask.example.distributed
 
 ```
 
@@ -95,12 +95,12 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 ## Citation
 
 ```bibtex
-@misc{distributaur,
+@misc{distributask,
   author = {Raccoon Research},
-  title = {distributaur: a simple way to distribute rendering tasks across mulitiple machines},
+  title = {distributask: a simple way to distribute rendering tasks across mulitiple machines},
   year = {2024},
   publisher = {GitHub},
-  howpublished = {\url{https://github.com/RaccoonResearch/distributaur}}
+  howpublished = {\url{https://github.com/RaccoonResearch/distributask}}
 }
 ```
 

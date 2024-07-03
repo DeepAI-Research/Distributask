@@ -2,30 +2,29 @@ import atexit
 import os
 import subprocess
 import time
-from tqdm import tqdm
 
-from .shared import distributaur, example_function
+from .shared import distributask, example_function
 
 
 if __name__ == "__main__":
     completed = False
 
-    distributaur.register_function(example_function)
+    distributask.register_function(example_function)
     # First, initialize the dataset on Hugging Face
     # This is idempotent, if you run it multiple times it won't delete files that already exist
-    distributaur.initialize_dataset()
+    distributask.initialize_dataset()
 
     # Create a file with the current date and time and save it as "datetime.txt"
     with open("datetime.txt", "w") as f:
         f.write(time.strftime("%Y-%m-%d %H:%M:%S"))
 
     # Upload this to the repository
-    distributaur.upload_file("datetime.txt")
+    distributask.upload_file("datetime.txt")
 
     # remove the example file
     os.remove("datetime.txt")
 
-    vast_api_key = distributaur.get_env("VAST_API_KEY")
+    vast_api_key = distributask.get_env("VAST_API_KEY")
     if not vast_api_key:
         raise ValueError("Vast API key not found in configuration.")
 
@@ -43,7 +42,7 @@ if __name__ == "__main__":
 
     tasks = []
 
-    repo_id = distributaur.get_env("HF_REPO_ID")
+    repo_id = distributask.get_env("HF_REPO_ID")
 
     # Submit the tasks
     # For each task, check if the output files already exist
@@ -56,7 +55,7 @@ if __name__ == "__main__":
         # for each file in job_config["outputs"]
         for output in job_config["outputs"]:
             # check if the file exists in the dataset already
-            file_exists = distributaur.file_exists(repo_id, output)
+            file_exists = distributask.file_exists(repo_id, output)
 
             # if the file exists, ask the user if they want to overwrite it
             if file_exists:
@@ -67,7 +66,7 @@ if __name__ == "__main__":
         params = job_config["task_params"]
 
         # queue up the function for execution on the node
-        task = distributaur.execute_function(example_function.__name__, params)
+        task = distributask.execute_function(example_function.__name__, params)
 
         # add the task to the list of tasks
         tasks.append(task)
@@ -89,7 +88,7 @@ if __name__ == "__main__":
     if docker_installed is False:
         print("Docker is not installed. Starting worker locally.")
         celery_worker = subprocess.Popen(
-            ["celery", "-A", "distributaur.example.worker", "worker", "--loglevel=info"]
+            ["celery", "-A", "distributask.example.worker", "worker", "--loglevel=info"]
         )
 
     else:
@@ -98,7 +97,7 @@ if __name__ == "__main__":
                 "docker",
                 "build",
                 "-t",
-                "distributaur-example-worker",
+                "distributask-example-worker",
                 ".",
             ]
         )
@@ -111,18 +110,18 @@ if __name__ == "__main__":
                 "-e",
                 f"VAST_API_KEY={vast_api_key}",
                 "-e",
-                f"REDIS_HOST={distributaur.get_env('REDIS_HOST')}",
+                f"REDIS_HOST={distributask.get_env('REDIS_HOST')}",
                 "-e",
-                f"REDIS_PORT={distributaur.get_env('REDIS_PORT')}",
+                f"REDIS_PORT={distributask.get_env('REDIS_PORT')}",
                 "-e",
-                f"REDIS_PASSWORD={distributaur.get_env('REDIS_PASSWORD')}",
+                f"REDIS_PASSWORD={distributask.get_env('REDIS_PASSWORD')}",
                 "-e",
-                f"REDIS_USER={distributaur.get_env('REDIS_USER')}",
+                f"REDIS_USER={distributask.get_env('REDIS_USER')}",
                 "-e",
-                f"HF_TOKEN={distributaur.get_env('HF_TOKEN')}",
+                f"HF_TOKEN={distributask.get_env('HF_TOKEN')}",
                 "-e",
                 f"HF_REPO_ID={repo_id}",
-                "distributaur-example-worker",
+                "distributask-example-worker",
             ]
         )
 
@@ -132,4 +131,4 @@ if __name__ == "__main__":
 
         atexit.register(kill_docker)
 
-    distributaur.monitor_tasks(tasks)
+    distributask.monitor_tasks(tasks)

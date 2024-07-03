@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: index.docker.io
-  IMAGE_NAME: arfx/distributaur-test-worker
+  IMAGE_NAME: antbaez/distributask-test-worker
 
 jobs:
   push_to_registry:

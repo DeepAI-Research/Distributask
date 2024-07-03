@@ -23,13 +23,13 @@ with open(os.path.join(file_path, "requirements.txt"), "r") as fh:
     ]
 
 setup(
-    name="distributaur",
+    name="distributask",
     version=version,
     description="Simple task manager and job queue for distributed rendering. Built on celery and redis.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/RaccoonResearch/distributaur",
-    author="Raccoon Research",
+    url="https://github.com/DeepAIResearch/distributask",
+    author="DeepAIResearch",
     author_email="team@deepai.org",
     license="MIT",
     packages=find_packages(),

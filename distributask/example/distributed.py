@@ -1,14 +1,13 @@
 import os
 import time
 import argparse
-from tqdm import tqdm
 import atexit
 
-from .shared import distributaur, example_function
+from .shared import distributask, example_function
 
 if __name__ == "__main__":
     # Create an ArgumentParser object
-    parser = argparse.ArgumentParser(description="Distributaur example script")
+    parser = argparse.ArgumentParser(description="Distributask example script")
 
     # Add arguments with default values
     parser.add_argument(
@@ -26,14 +25,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--docker_image",
         type=str,
-        default="arfx/distributaur-test-worker",
-        help="Docker image to use for the worker (default: arfx/distributaur-test-worker)",
+        default="antbaez/distributask-test-worker",
+        help="Docker image to use for the worker (default: antbaez/distributask-test-worker)",
     )
     parser.add_argument(
         "--module_name",
         type=str,
-        default="distributaur.example.worker",
-        help="Module name (default: distributaur.example.worker)",
+        default="distributask.example.worker",
+        help="Module name (default: distributask.example.worker)",
     )
     parser.add_argument(
         "--number_of_tasks", type=int, default=10, help="Number of tasks (default: 10)"
@@ -44,23 +43,23 @@ if __name__ == "__main__":
 
     completed = False
 
-    distributaur.register_function(example_function)
+    distributask.register_function(example_function)
 
     # First, initialize the dataset on Hugging Face
     # This is idempotent, if you run it multiple times it won't delete files that already exist
-    distributaur.initialize_dataset()
+    distributask.initialize_dataset()
 
     # Create a file with the current date and time and save it as "datetime.txt"
     with open("datetime.txt", "w") as f:
         f.write(time.strftime("%Y-%m-%d %H:%M:%S"))
 
     # Upload this to the repository
-    distributaur.upload_file("datetime.txt")
+    distributask.upload_file("datetime.txt")
 
     # remove the example file
     os.remove("datetime.txt")
 
-    vast_api_key = distributaur.get_env("VAST_API_KEY")
+    vast_api_key = distributask.get_env("VAST_API_KEY")
     if not vast_api_key:
         raise ValueError("Vast API key not found in configuration.")
 
@@ -78,7 +77,7 @@ if __name__ == "__main__":
     # Rent the nodes and get the node ids
     # This will return a list of node ids that you can use to execute tasks
     print("Renting nodes...")
-    rented_nodes = distributaur.rent_nodes(
+    rented_nodes = distributask.rent_nodes(
         args.max_price, args.max_nodes, args.docker_image, args.module_name
     )
 
@@ -87,7 +86,7 @@ if __name__ == "__main__":
 
     tasks = []
 
-    repo_id = distributaur.get_env("HF_REPO_ID")
+    repo_id = distributask.get_env("HF_REPO_ID")
 
     # Submit the tasks to the queue for the worker nodes to execute
     for i in range(args.number_of_tasks):
@@ -101,15 +100,15 @@ if __name__ == "__main__":
         params = job_config["task_params"]
 
         # queue up the function for execution on the node
-        task = distributaur.execute_function(example_function.__name__, params)
+        task = distributask.execute_function(example_function.__name__, params)
 
         # add the task to the list of tasks
         tasks.append(task)
 
     def terminate_workers():
-        distributaur.terminate_nodes(rented_nodes)
+        distributask.terminate_nodes(rented_nodes)
         print("Workers terminated.")
 
     atexit.register(terminate_workers)
 
-    distributaur.monitor_tasks(tasks)
+    distributask.monitor_tasks(tasks)
