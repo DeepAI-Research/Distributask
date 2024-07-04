@@ -184,13 +184,13 @@ class Distributask:
         if self.redis_client is not None and not force_new:
             return self.redis_client
         else:
-            redis_url = self.get_redis_url()
-            # self.pool = ConnectionPool.from_url(redis_url)
-            self.pool = ConnectionPool(host=self.settings["REDIS_HOST"],
-                            port=self.settings["REDIS_PORT"],
-                            password=self.settings["REDIS_PASSWORD"],
-                            max_connections=1)
-            self.redis_client = Redis(connection_pool=self.pool, max_connections=1)
+            self.pool = ConnectionPool(max_connections=1)
+            self.redis_client = Redis(
+                connection_pool=self.pool,
+                host=self.settings["REDIS_HOST"],
+                port=self.settings["REDIS_PORT"],
+                password=self.settings["REDIS_PASSWORD"],
+            )
             atexit.register(self.pool.disconnect)
 
         return self.redis_client
