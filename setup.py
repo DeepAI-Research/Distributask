@@ -28,7 +28,7 @@ setup(
     description="Simple task manager and job queue for distributed rendering. Built on celery and redis.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/DeepAIResearch/distributask",
+    url="https://github.com/DeepAI-Research/Distributask",
     author="DeepAIResearch",
     author_email="team@deepai.org",
     license="MIT",
