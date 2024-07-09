@@ -1,10 +1,7 @@
-# distributask 
+# Distributask 
 
-<!-- <a href="https://discord.gg/JMfbmHdPNB"><img style="float: right" src="https://dcbadge.vercel.app/api/server/JMfbmHdPNB" alt=""></a> <a href="https://github.com/RaccoonResearch/distributask/stargazers"><img style="float: right; padding: 5px;" src="https://img.shields.io/github/stars/RaccoonResearch/distributask?style=social" alt=""></a> -->
 
 A simple way to distribute rendering tasks across multiple machines.
-
-<img src="docs/assets/banner.png">
 
 [![Lint and Test](https://github.com/RaccoonResearch/distributask/actions/workflows/test.yml/badge.svg)](https://github.com/RaccoonResearch/distributask/actions/workflows/test.yml)
 [![PyPI version](https://badge.fury.io/py/distributask.svg)](https://badge.fury.io/py/distributask)

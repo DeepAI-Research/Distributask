@@ -1,5 +1,3 @@
-<img src="assets/banner.png" style="width: 100%">
-
 Distributask is a simple way to distribute rendering tasks across multiple machines.
 
 This documentation is intended to help you understand the structure of the Distributask API and codebase and how to use it to distribute rendering tasks across multiple machines for your own projects.
