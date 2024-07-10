@@ -11,9 +11,9 @@ with open(os.path.join(file_path, "README.md"), "r") as fh:
     long_description = [line for line in long_description if not "<img" in line]
     long_description = "\n".join(long_description)
 
-# with open(os.path.join(file_path, "version.txt"), "r") as fh:
-#     version_content = fh.read()
-#     version = version_content.split("\n")[0].strip()
+with open(os.path.join(file_path, "version.txt"), "r") as fh:
+    version_content = fh.read()
+    version = version_content.split("\n")[0].strip()
 
 with open(os.path.join(file_path, "requirements.txt"), "r") as fh:
     install_requires = fh.read()
@@ -24,7 +24,7 @@ with open(os.path.join(file_path, "requirements.txt"), "r") as fh:
 
 setup(
     name="distributask",
-    # version=version,
+    version=version,
     description="Simple task manager and job queue for distributed rendering. Built on celery and redis.",
     long_description=long_description,
     long_description_content_type="text/markdown",
