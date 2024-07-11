@@ -518,7 +518,7 @@ class Distributask:
             raise
 
     def create_instance(
-        self, offer_id: str, image: str, module_name: str, settings: Dict = None, command: str = None
+        self, offer_id: str, image: str, module_name: str, settings: Dict, command: str
     ) -> Dict:
         """
         Create an instance on the Vast.ai platform.
@@ -588,7 +588,7 @@ class Distributask:
         max_nodes: int,
         image: str,
         module_name: str,
-        settings: Dict,
+        settings: Dict = None,
         command: str = None,
     ) -> List[Dict]:
         """
