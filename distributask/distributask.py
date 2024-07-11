@@ -33,9 +33,9 @@ class Distributask:
         hf_repo_id=os.getenv("HF_REPO_ID"),
         hf_token=os.getenv("HF_TOKEN"),
         vast_api_key=os.getenv("VAST_API_KEY"),
-        redis_host=os.getenv("REDIS_HOST", "localhost"),
+        redis_host=os.getenv("REDIS_HOST", "nohost"),
         redis_password=os.getenv("REDIS_PASSWORD", ""),
-        redis_port=os.getenv("REDIS_PORT", 6379),
+        redis_port=os.getenv("REDIS_PORT", 6666),
         redis_username=os.getenv("REDIS_USER", "default"),
         broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
     ) -> None:
