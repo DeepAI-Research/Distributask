@@ -518,7 +518,7 @@ class Distributask:
             raise
 
     def create_instance(
-        self, offer_id: str, image: str, module_name: str, settings: Dict, command: str
+        self, offer_id: str, image: str, module_name: str, env_settings: Dict, command: str
     ) -> Dict:
         """
         Create an instance on the Vast.ai platform.
@@ -543,13 +543,13 @@ class Distributask:
         if command is None:
             command = f"celery -A {module_name} worker --loglevel=info --concurrency=1 --without-heartbeat"
 
-        if settings is None:
-            settings = self.settings
+        if env_settings is None:
+            env_settings = self.settings
 
         json_blob = {
             "client_id": "me",
             "image": image,
-            "env": settings,
+            "env": env_settings,
             "disk": 32,  # Set a non-zero value for disk
             "onstart": f"export PATH=$PATH:/ && cd ../ && {command}",
             "runtype": "ssh ssh_proxy",
@@ -588,7 +588,7 @@ class Distributask:
         max_nodes: int,
         image: str,
         module_name: str,
-        settings: Dict = None,
+        env_settings: Dict = None,
         command: str = None,
     ) -> List[Dict]:
         """
@@ -629,7 +629,7 @@ class Distributask:
                     break
                 try:
                     instance = self.create_instance(
-                        offer["id"], image, module_name, settings, command
+                        offer["id"], image, module_name, env_settings=env_settings, command=command
                     )
                     atexit.register(self.destroy_instance, instance["new_contract"])
                     rented_nodes.append(
