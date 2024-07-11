@@ -33,9 +33,9 @@ class Distributask:
         hf_repo_id=os.getenv("HF_REPO_ID"),
         hf_token=os.getenv("HF_TOKEN"),
         vast_api_key=os.getenv("VAST_API_KEY"),
-        redis_host=os.getenv("REDIS_HOST", "nohost"),
+        redis_host=os.getenv("REDIS_HOST", "localhost"),
         redis_password=os.getenv("REDIS_PASSWORD", ""),
-        redis_port=os.getenv("REDIS_PORT", 6666),
+        redis_port=os.getenv("REDIS_PORT", 6379),
         redis_username=os.getenv("REDIS_USER", "default"),
         broker_pool_limit=os.getenv("BROKER_POOL_LIMIT", 1),
     ) -> None:
@@ -518,7 +518,7 @@ class Distributask:
             raise
 
     def create_instance(
-        self, offer_id: str, image: str, module_name: str, command: str = None
+        self, offer_id: str, image: str, module_name: str, settings: Dict = None, command: str = None
     ) -> Dict:
         """
         Create an instance on the Vast.ai platform.
@@ -543,10 +543,13 @@ class Distributask:
         if command is None:
             command = f"celery -A {module_name} worker --loglevel=info --concurrency=1 --without-heartbeat"
 
+        if settings is None:
+            settings = self.settings
+
         json_blob = {
             "client_id": "me",
             "image": image,
-            "env": self.settings,
+            "env": settings,
             "disk": 32,  # Set a non-zero value for disk
             "onstart": f"export PATH=$PATH:/ && cd ../ && {command}",
             "runtype": "ssh ssh_proxy",
