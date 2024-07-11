@@ -588,6 +588,7 @@ class Distributask:
         max_nodes: int,
         image: str,
         module_name: str,
+        settings: Dict,
         command: str = None,
     ) -> List[Dict]:
         """
@@ -628,7 +629,7 @@ class Distributask:
                     break
                 try:
                     instance = self.create_instance(
-                        offer["id"], image, module_name, command
+                        offer["id"], image, module_name, settings, command
                     )
                     atexit.register(self.destroy_instance, instance["new_contract"])
                     rented_nodes.append(
