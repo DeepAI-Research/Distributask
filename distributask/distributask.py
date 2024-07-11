@@ -184,13 +184,11 @@ class Distributask:
         if self.redis_client is not None and not force_new:
             return self.redis_client
         else:
-            self.pool = ConnectionPool(max_connections=1)
-            self.redis_client = Redis(
-                connection_pool=self.pool,
-                host=self.settings["REDIS_HOST"],
-                port=self.settings["REDIS_PORT"],
-                password=self.settings["REDIS_PASSWORD"],
-            )
+            self.pool = ConnectionPool(host=self.settings["REDIS_HOST"], 
+                                       port=self.settings["REDIS_PORT"],
+                                       password=self.settings["REDIS_PASSWORD"], 
+                                       max_connections=1)
+            self.redis_client = Redis(connection_pool=self.pool)
             atexit.register(self.pool.disconnect)
 
         return self.redis_client
@@ -662,11 +660,14 @@ class Distributask:
         response = requests.request(
             "PUT", url, headers=headers, json=payload, timeout=5
         )
-        log_url = response.json()["result_url"]
-        time.sleep(wait_time)
-        log_response = requests.get(log_url, timeout=5)
 
-        return log_response
+        if response.status_code == 200:
+            log_url = response.json()["result_url"]
+            time.sleep(wait_time)
+            log_response = requests.get(log_url, timeout=5)
+            return log_response
+        else:
+            return None
 
     def terminate_nodes(self, nodes: List[Dict]) -> None:
         """
