@@ -651,14 +651,23 @@ class Distributask:
         return rented_nodes
 
     def get_node_log(self, node: Dict, wait_time: int = 2):
+        """
+        Get the log of the Vast.ai instance that is passed in. Makes an api call to tell the instance to send the log,
+        and another one to actually retrive the log
+        Args:
+            node (Dict): the node that corresponds to the Vast.ai instance you want the log from
+            wait_time (int): how long to wait in between the two api calls described above
 
+        Returns:
+            str: the log of the instance requested. If anything else other than a code 200 is received, return None
+        """
         node_id = node["instance_id"]
         url = f"https://console.vast.ai/api/v0/instances/request_logs/{node_id}/"
 
         payload = {"tail": "1000"}
         headers = {
             "Accept": "application/json",
-            "Authorization": "Bearer ac8b1195eb3f71e5d3520b6c2cbd81b671b05619d5f1b276eaaf25f5177b0599",
+            "Authorization": f"Bearer {self.settings['VAST_API_KEY']}",
         }
 
         response = requests.request(
@@ -669,7 +678,10 @@ class Distributask:
             log_url = response.json()["result_url"]
             time.sleep(wait_time)
             log_response = requests.get(log_url, timeout=5)
-            return log_response
+            if log_response.status_code == 200:
+                return log_response
+            else:
+                return None
         else:
             return None
 
