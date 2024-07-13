@@ -539,7 +539,7 @@ class Distributask:
             raise ValueError("VAST_API_KEY is not set in the environment")
 
         if command is None:
-            command = f"celery -A {module_name} worker --loglevel=info --concurrency=1 --without-heartbeat --prefetch_multiplier=1"
+            command = f"celery -A {module_name} worker --loglevel=info --concurrency=1 --without-heartbeat --prefetch-multiplier=1"
 
         if env_settings is None:
             env_settings = self.settings
