@@ -116,9 +116,7 @@ class Distributask:
         self.redis_client = self.get_redis_connection()
 
         # Tasks are acknowledged after they have been executed
-        self.app.task_acks_late = True
-        # Worker only fetches one task at a time
-        self.app.worker_prefetch_multiplier = 1
+        self.app.conf.task_acks_late = True
         self.call_function_task = self.app.task(
             bind=True, name="call_function_task", max_retries=3, default_retry_delay=30
         )(self.call_function_task)
@@ -541,7 +539,7 @@ class Distributask:
             raise ValueError("VAST_API_KEY is not set in the environment")
 
         if command is None:
-            command = f"celery -A {module_name} worker --loglevel=info --concurrency=1 --without-heartbeat"
+            command = f"celery -A {module_name} worker --loglevel=info --concurrency=1 --without-heartbeat --prefetch_multiplier=1"
 
         if env_settings is None:
             env_settings = self.settings
