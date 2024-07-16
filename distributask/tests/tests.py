@@ -372,13 +372,14 @@ def test_create_instance(mock_put):
     offer_id = "offer1"
     image = "test_image"
     module_name = "distributask.example.worker"
+    command = f"celery -A {module_name} worker --loglevel=info"
 
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"new_contract": "instance1"}
     mock_put.return_value = mock_response
 
-    instance = distributask.create_instance(offer_id, image, module_name)
+    instance = distributask.create_instance(offer_id, image, module_name, distributask.settings, command)
 
     assert instance["new_contract"] == "instance1"
 
