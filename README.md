@@ -81,9 +81,9 @@ This script configures the environment, registers a sample function, creates a q
 - `--module_name` is the name of the Celery worker.
 - `--number_of_tasks` is the number of example tasks that will be added to the queue and done by the workers.
 
-## More Info
+## Documentation
 
-Check out our in-depth documentation at deepai-research.github.io/Distributask/!
+For more info checkout our in-depth [documentation]!
 
 ## Contributing
 
@@ -101,7 +101,7 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
   title = {Distributask: a simple way to distribute rendering tasks across mulitiple machines},
   year = {2024},
   publisher = {GitHub},
-  howpublished = {\url{https://github.com/RaccoonResearch/distributask}}
+  howpublished = {\url{https://github.com/DeepAI-Research/Distributask}}
 }
 ```
 
