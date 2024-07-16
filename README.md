@@ -3,7 +3,7 @@
 
 A simple way to distribute rendering tasks across multiple machines.
 
-[![Lint and Test](https://https://github.com/DeepAI-Research/Distributask/actions/workflows/test.yml/badge.svg)](https://github.com/DeepAI-Research/Distributask/actions/workflows/test.yml)
+[![Lint and Test](https://github.com/DeepAI-Research/Distributask/actions/workflows/test.yml/badge.svg)](https://github.com/DeepAI-Research/Distributask/actions/workflows/test.yml)
 [![PyPI version](https://badge.fury.io/py/distributask.svg)](https://badge.fury.io/py/distributask)
 [![License](https://img.shields.io/badge/License-MIT-blue)](https://github.com/RaccoonResearch/distributask/blob/main/LICENSE)
 [![forks - distributask](https://img.shields.io/github/forks/RaccoonResearch/distributask?style=social)](https://github.com/RaccoonResearch/distributask)
@@ -71,7 +71,7 @@ python -m distributask.example.distributed
 
 ```
 
-This script configures the environment, registers a sample function, creats a queue of tasks, and monitors its execution on some workers.
+This script configures the environment, registers a sample function, creates a queue of tasks, and monitors its execution on some workers.
 
 ### Command Options
 
