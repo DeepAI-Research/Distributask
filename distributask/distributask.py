@@ -525,7 +525,10 @@ class Distributask:
             offer_id (str): The ID of the offer to create the instance from.
             image (str): The image to use for the instance. (example: RaccoonResearch/distributask-test-worker)
             module_name (str): The name of the module to run on the instance, configured to be a docker file (example: distributask.example.worker)
-            command (str): command that initializes celery worker. Has default command if not passed in.
+            command (str): Command that initializes celery worker. Has default command with specific settings if not passed in. These settings have
+            been found to be beneficial to the stability and simplicity of a Distributask run. 
+            env_settings (Dict): Used to pass in environment variables to the Vast.ai instance. This is a dictionary with keys of the 
+            environment variable name and values of the desired value of the environment variable.
 
         Returns:
             Dict: A dictionary representing the created instance.
