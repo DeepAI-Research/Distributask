@@ -3,14 +3,14 @@
 
 A simple way to distribute rendering tasks across multiple machines.
 
-[![Lint and Test](https://github.com/RaccoonResearch/distributask/actions/workflows/test.yml/badge.svg)](https://github.com/RaccoonResearch/distributask/actions/workflows/test.yml)
+[![Lint and Test](https://https://github.com/DeepAI-Research/Distributask/actions/workflows/test.yml/badge.svg)](https://github.com/DeepAI-Research/Distributask/actions/workflows/test.yml)
 [![PyPI version](https://badge.fury.io/py/distributask.svg)](https://badge.fury.io/py/distributask)
 [![License](https://img.shields.io/badge/License-MIT-blue)](https://github.com/RaccoonResearch/distributask/blob/main/LICENSE)
 [![forks - distributask](https://img.shields.io/github/forks/RaccoonResearch/distributask?style=social)](https://github.com/RaccoonResearch/distributask)
 
 # Description
 
-Distributask distributes rendering using the Celery task queue. The queued tasks are then passed to workers using Redis as a message broker. Once the worker has completed the task, the result is uploaded to Huggingface.
+Distributask is a package that automatically queues, executes, and uploads the result of any task you want using Vast.ai, a decentralized network of GPUs. It works by first creating a Celery queue of the tasks, which is code that you want to be ran on a GPU. The tasks are then passed to the Vast.ai GPU workers using Redis as a message broker. Once the worker has completed the task, the result is uploaded to Huggingface.
 
 # Installation
 
@@ -25,8 +25,8 @@ pip install distributask
 Clone the repository and navigate to the project directory:
 
 ```bash
-git clone https://github.com/RaccoonResearch/distributask.git
-cd distributask
+git clone https://github.com/DeepAI-Research/Distributask.git
+cd Distributask
 ```
 
 Install the required packages:
@@ -63,23 +63,27 @@ BROKER_POOL_LIMIT=broker_pool_limit
 To run an example task and see Distributask in action, you can execute the example script provided in the project:
 
 ```bash
-# To run the example task locally using either a Docker container or a Celery worker
+# Run the example task locally using either a Docker container or a Celery worker:
 python -m distributask.example.local
 
-# To run the example task on vast.ai ("kitchen sink" example)
+# Run the example task on Vast.ai ("kitchen sink" example):
 python -m distributask.example.distributed
 
 ```
 
-This script configures the environment, registers a sample function, dispatches a task, and monitors its execution.
+This script configures the environment, registers a sample function, creats a queue of tasks, and monitors its execution on some workers.
 
 ### Command Options
 
 - `--max_price` is the max price (in $/hour) a node can be be rented for.
 - `--max_nodes` is the max number of vast.ai nodes that can be rented.
 - `--docker_image` is the name of the docker image to load to the vast.ai node.
-- `--module_name` is the name of the celery worker
+- `--module_name` is the name of the Celery worker.
 - `--number_of_tasks` is the number of example tasks that will be added to the queue and done by the workers.
+
+## More Info
+
+Check out our in-depth documentation at deepai-research.github.io/Distributask/!
 
 ## Contributing
 
@@ -92,9 +96,9 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 ## Citation
 
 ```bibtex
-@misc{distributask,
-  author = {Raccoon Research},
-  title = {distributask: a simple way to distribute rendering tasks across mulitiple machines},
+@misc{Distributask,
+  author = {DeepAIResearch},
+  title = {Distributask: a simple way to distribute rendering tasks across mulitiple machines},
   year = {2024},
   publisher = {GitHub},
   howpublished = {\url{https://github.com/RaccoonResearch/distributask}}
