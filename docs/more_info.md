@@ -1,4 +1,4 @@
-# Summary of useful functions
+# Summary of most relevant functions
 
 #### Settings, Environment, and Help
 
@@ -34,7 +34,7 @@
 
 # Docker Setup
 
-Distributask uses a Docker image to transfer the environment and files to the Vast.ai nodes. In your implementation using Distributask, you can use the Docker file in the Distributask repository as a base for your own Docker file. If you choose to do this, be sure to add requirements.txt (and add distributask to the list of packages) to your directory as well so the Docker image has the required packages.
+Distributask uses a Docker image to transfer the environment and neccessary files to the Vast.ai nodes. In your implementation using Distributask, you can use the Docker file in the Distributask repository as a base for your own Docker file. If you do this, be sure to add Distributask to the list of packages to be installed on your Docker file.
 
 # Important Packages
 

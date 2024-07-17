@@ -5,12 +5,12 @@ A simple way to distribute rendering tasks across multiple machines.
 
 [![Lint and Test](https://github.com/DeepAI-Research/Distributask/actions/workflows/test.yml/badge.svg)](https://github.com/DeepAI-Research/Distributask/actions/workflows/test.yml)
 [![PyPI version](https://badge.fury.io/py/distributask.svg)](https://badge.fury.io/py/distributask)
-[![License](https://img.shields.io/badge/License-MIT-blue)](https://github.com/RaccoonResearch/distributask/blob/main/LICENSE)
-[![forks - distributask](https://img.shields.io/github/forks/RaccoonResearch/distributask?style=social)](https://github.com/RaccoonResearch/distributask)
+[![License](https://img.shields.io/badge/License-MIT-blue)](https://github.com/DeepAI-Research/Distributask/blob/main/LICENSE)
+
 
 # Description
 
-Distributask is a package that automatically queues, executes, and uploads the result of any task you want using Vast.ai, a decentralized network of GPUs. It works by first creating a Celery queue of the tasks, which is code that you want to be ran on a GPU. The tasks are then passed to the Vast.ai GPU workers using Redis as a message broker. Once the worker has completed the task, the result is uploaded to Huggingface.
+Distributask is a package that automatically queues, executes, and uploads the result of any task you want using Vast.ai, a decentralized network of GPUs. It works by first creating a Celery queue of the tasks, which contain the code that you want to be ran on a GPU. The tasks are then passed to the Vast.ai GPU workers using Redis as a message broker. Once a worker has completed a task, the result is uploaded to Hugging Face.
 
 # Installation
 
@@ -35,10 +35,10 @@ Install the required packages:
 pip install -r requirements.txt
 ```
 
-Install the distributask package:
+Or install Distributask as a package:
 
 ```bash
-python setup.py install
+pip install distributask
 ```
 
 ### Configuration
@@ -46,14 +46,14 @@ python setup.py install
 Create a `.env` file in the root directory of your project or set environment variables to create your desired setup:
 
 ```plaintext
-REDIS_HOST=redis_host
-REDIS_PORT=redis_port
-REDIS_USER=redis_user
-REDIS_PASSWORD=redis_password
-VAST_API_KEY=your_vastai_api_key
-HF_TOKEN=your_huggingface_token
-HF_REPO_ID=your_huggingface_repo
-BROKER_POOL_LIMIT=broker_pool_limit
+REDIS_HOST="name of your redis server"
+REDIS_PORT="port of your redis server
+REDIS_USER="username to login to redis server"
+REDIS_PASSWORD="password to login to redis server"
+VAST_API_KEY="your Vast.ai API key"
+HF_TOKEN="your Hugging Face token"
+HF_REPO_ID="name of your Hugging Face repository"
+BROKER_POOL_LIMIT="your broker pool limit setting"
 ```
 
 ## Getting Started
@@ -83,11 +83,11 @@ This script configures the environment, registers a sample function, creates a q
 
 ## Documentation
 
-For more info checkout our in-depth [documentation]!
+For more info checkout our in-depth [documentation](https://deepai-research.github.io/Distributask)!
 
 ## Contributing
 
-Contributions are welcome! For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome! For any changes you would like to see, please open an issue to discuss what you would like to see changed or to change yourself.
 
 ## License
 

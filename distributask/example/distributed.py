@@ -38,25 +38,24 @@ if __name__ == "__main__":
         "--number_of_tasks", type=int, default=10, help="Number of tasks (default: 10)"
     )
 
-    # Parse the arguments
     args = parser.parse_args()
 
     completed = False
 
+    # Register function to distributask object
     distributask.register_function(example_function)
 
-    # First, initialize the dataset on Hugging Face
-    # This is idempotent, if you run it multiple times it won't delete files that already exist
+    # Initialize the dataset on Hugging Face
     distributask.initialize_dataset()
 
     # Create a file with the current date and time and save it as "datetime.txt"
     with open("datetime.txt", "w") as f:
         f.write(time.strftime("%Y-%m-%d %H:%M:%S"))
 
-    # Upload this to the repository
+    # Upload file to the repository
     distributask.upload_file("datetime.txt")
 
-    # remove the example file
+    # Remove the example file from local
     os.remove("datetime.txt")
 
     vast_api_key = distributask.get_env("VAST_API_KEY")
@@ -65,7 +64,7 @@ if __name__ == "__main__":
 
     job_configs = []
 
-    # Submit params for the job
+    # Compile parameters for tasks
     for i in range(args.number_of_tasks):
         job_configs.append(
             {
@@ -74,41 +73,37 @@ if __name__ == "__main__":
             }
         )
 
-    # Rent the nodes and get the node ids
-    # This will return a list of node ids that you can use to execute tasks
+    # Rent Vast.ai nodes and get list of node ids
     print("Renting nodes...")
     rented_nodes = distributask.rent_nodes(
         args.max_price, args.max_nodes, args.docker_image, args.module_name
     )
 
     print("Total rented nodes: ", len(rented_nodes))
-    print(rented_nodes)
 
     tasks = []
 
-    repo_id = distributask.get_env("HF_REPO_ID")
-
-    # Submit the tasks to the queue for the worker nodes to execute
+    # Submit the tasks to the queue for the Vast.ai worker nodes to execute
     for i in range(args.number_of_tasks):
         job_config = job_configs[i]
         print(f"Task {i}")
         print(job_config)
         print("Task params: ", job_config["task_params"])
 
-        print("Submitting tasks...")
-
         params = job_config["task_params"]
 
-        # queue up the function for execution on the node
+        # Each task executes the function "example_function", defined in shared.py
         task = distributask.execute_function(example_function.__name__, params)
 
-        # add the task to the list of tasks
+        # Add the task to the list of tasks
         tasks.append(task)
 
     def terminate_workers():
         distributask.terminate_nodes(rented_nodes)
         print("Workers terminated.")
 
+    # Terminate Vast.ai nodes on exit of script
     atexit.register(terminate_workers)
 
+    # Monitor the status of the tasks with tqdm
     distributask.monitor_tasks(tasks)

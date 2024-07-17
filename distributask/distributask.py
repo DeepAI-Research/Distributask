@@ -519,7 +519,7 @@ class Distributask:
         self, offer_id: str, image: str, module_name: str, env_settings: Dict, command: str
     ) -> Dict:
         """
-        Create an instance on the Vast.ai platform.
+        Create an instance on the Vast.ai platform. Passes in some useful Celery settings by default.
 
         Args:
             offer_id (str): The ID of the offer to create the instance from.
