@@ -383,11 +383,27 @@ def test_create_instance(mock_put):
 
     assert instance["new_contract"] == "instance1"
 
+def test_get_node_log(): 
+ 
+    distributask = create_from_config()
+
+    max_price = 0.5
+    max_nodes = 1
+    image = "antbaez/distributask-test-worker:latest"
+    module_name = "distributask.example.worker"
+
+    nodes = distributask.rent_nodes(max_price, max_nodes, image, module_name)
+
+    time.sleep(60)
+
+    response = distributask.get_node_log(nodes[0], wait_time=5)
+
+    assert response is not None
+    assert response.status_code == 200
+
 
 from io import StringIO
 import subprocess
-import re
-
 
 def test_local_example_run():
     # Capture the stdout and stderr during the execution
