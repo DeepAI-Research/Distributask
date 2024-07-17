@@ -9,9 +9,10 @@ from .shared import distributask, example_function
 if __name__ == "__main__":
     completed = False
 
+    # Register function to distributask object
     distributask.register_function(example_function)
+
     # First, initialize the dataset on Hugging Face
-    # This is idempotent, if you run it multiple times it won't delete files that already exist
     distributask.initialize_dataset()
 
     # Create a file with the current date and time and save it as "datetime.txt"
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     # Upload this to the repository
     distributask.upload_file("datetime.txt")
 
-    # remove the example file
+    # Remove the example file from local
     os.remove("datetime.txt")
 
     vast_api_key = distributask.get_env("VAST_API_KEY")
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     job_configs = []
     number_of_tasks = 3
 
-    # Submit params for the job
+    # Compile parameters for tasks
     for i in range(number_of_tasks):
         job_configs.append(
             {
@@ -44,37 +45,24 @@ if __name__ == "__main__":
 
     repo_id = distributask.get_env("HF_REPO_ID")
 
-    # Submit the tasks
-    # For each task, check if the output files already exist
+    # Submit the tasks to the queue for the Vast.ai worker nodes to execute
     for i in range(number_of_tasks):
         job_config = job_configs[i]
         print(f"Task {i}")
         print(job_config)
         print("Task params: ", job_config["task_params"])
 
-        # for each file in job_config["outputs"]
-        for output in job_config["outputs"]:
-            # check if the file exists in the dataset already
-            file_exists = distributask.file_exists(repo_id, output)
-
-            # if the file exists, ask the user if they want to overwrite it
-            if file_exists:
-                print("Files already exist. Do you want to overwrite them? (y/n): ")
-
-        print("Submitting tasks...")
-
         params = job_config["task_params"]
 
-        # queue up the function for execution on the node
+        # Each task executes the function "example_function", defined in shared.py
         task = distributask.execute_function(example_function.__name__, params)
 
-        # add the task to the list of tasks
+        # Add the task to the list of tasks
         tasks.append(task)
 
-    # start the worker
-
+    # Start the local worker
     docker_installed = False
-    # first, check if docker is installed
+    # Check if docker is installed
     try:
         subprocess.run(["docker", "version"], check=True)
         docker_installed = True
@@ -83,8 +71,8 @@ if __name__ == "__main__":
         print(e)
 
     docker_process = None
-    # if docker is installed, start local docker worker
-    # if docker is not installed, start local celery worker
+    # If docker is installed, start local Docker worker
+    # If docker is not installed, start local Celery worker
     if docker_installed is False:
         print("Docker is not installed. Starting worker locally.")
         celery_worker = subprocess.Popen(
@@ -129,6 +117,9 @@ if __name__ == "__main__":
             print("Killing docker container")
             docker_process.terminate()
 
+        # Terminate Docker worker on exit of script
         atexit.register(kill_docker)
 
+    # Monitor the status of the tasks with tqdm
     distributask.monitor_tasks(tasks)
+    
