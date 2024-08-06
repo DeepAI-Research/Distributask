@@ -581,7 +581,7 @@ class Distributask:
             f"https://console.vast.ai/api/v0/instances/{instance_id}/?api_key={api_key}"
         )
         response = requests.delete(url, headers=headers)
-        return response.json()
+        return response
 
     def rent_nodes(
         self,
@@ -618,21 +618,21 @@ class Distributask:
                         "error",
                     )
                     search_retries -= 1
-                    # sleep for 5 seconds before retrying
-                    time.sleep(5)
+                    # sleep for 10 seconds before retrying
+                    time.sleep(10)
                     continue
 
             offers = sorted(
                 offers, key=lambda offer: offer["dph_total"]
             )  # Sort offers by price, lowest to highest
             for offer in offers:
+                time.sleep(5)
                 if len(rented_nodes) >= max_nodes:
                     break
                 try:
                     instance = self.create_instance(
                         offer["id"], image, module_name, env_settings=env_settings, command=command
                     )
-                    atexit.register(self.destroy_instance, instance["new_contract"])
                     rented_nodes.append(
                         {
                             "offer_id": offer["id"],
@@ -649,6 +649,8 @@ class Distributask:
                 # If the loop completes without breaking, all offers have been tried
                 self.log("No more offers available - stopping node rental", "warning")
                 break
+
+        atexit.register(self.terminate_nodes, rented_nodes)
         return rented_nodes
 
     def get_node_log(self, node: Dict, wait_time: int = 2):
@@ -696,9 +698,14 @@ class Distributask:
         Raises:
             Exception: If error in destroying instances.
         """
+        print("Terminating nodes...")
         for node in nodes:
+            time.sleep(1)
             try:
-                self.destroy_instance(node["instance_id"])
+                response = self.destroy_instance(node["instance_id"])
+                if response.status_code != 200:
+                    time.sleep(5)
+                    self.destroy_instance(node["instance_id"])
             except Exception as e:
                 self.log(
                     f"Error terminating node: {node['instance_id']}, {str(e)}", "error"
