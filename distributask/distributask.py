@@ -226,7 +226,7 @@ class Distributask:
             func = self.registered_functions[func_name]
             args = json.loads(args_json)
             result = func(**args)
-            self.update_function_status(self.call_function_task.request.id, "success")
+            # self.update_function_status(self.call_function_task.request.id, "success")
 
             return result
         except Exception as e:
