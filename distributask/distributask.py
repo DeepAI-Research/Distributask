@@ -231,9 +231,8 @@ class Distributask:
             return result
         except Exception as e:
             self.log(f"Error in call_function_task: {str(e)}", "error")
-            self.call_function_task.retry(exc=e)
+            # self.call_function_task.retry(exc=e)
 
-        return result
 
     def register_function(self, func: callable) -> callable:
         """
